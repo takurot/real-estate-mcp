@@ -6,6 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
+from dotenv import load_dotenv
+
+# .envファイルから環境変数を読み込む
+load_dotenv()
 
 # 都道府県コードと都道府県名のマッピング辞書
 PREFECTURE_MAP = {

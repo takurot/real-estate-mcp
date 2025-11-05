@@ -9,6 +9,10 @@ import subprocess
 import tempfile
 import shutil
 from pathlib import Path
+from dotenv import load_dotenv
+
+# .envファイルから環境変数を読み込む
+load_dotenv()
 
 def test_help():
     """--help オプションのテスト"""
@@ -77,12 +81,26 @@ def test_single_prefecture():
             assert "Price" in header, "CSV should contain Price column"
             assert "PricePerUnit" in header, "CSV should contain PricePerUnit column"
         
+        # APIからデータが取得できていることを確認（CSVのデータ行数で検証）
+        data_rows = len(lines) - 1  # ヘッダーを除く
+        assert data_rows > 0, f"API should return data, but got {data_rows} rows"
+        
+        # データの内容が正しいことを確認（最初のデータ行をチェック）
+        if len(lines) > 1:
+            first_data_row = lines[1].strip().split(',')
+            assert len(first_data_row) >= 5, "Data row should have at least 5 columns"
+            # CityCodeが5桁の数字であることを確認
+            assert first_data_row[0].isdigit() and len(first_data_row[0]) == 5, \
+                f"CityCode should be 5-digit number, got: {first_data_row[0]}"
+            # Yearが整数であることを確認
+            assert first_data_row[2].isdigit(), f"Year should be integer, got: {first_data_row[2]}"
+        
         # PNGファイルの確認（データがある場合のみ）
         png_files = list(plots_dir.glob("*.png"))
         if len(lines) > 1:  # データがある場合
             assert len(png_files) >= 2, f"Should have at least 2 PNG files when data exists, got {len(png_files)}"
             print(f"✓ Single prefecture test passed")
-            print(f"  - CSV file: {csv_file} ({len(lines)-1} rows)")
+            print(f"  - CSV file: {csv_file} ({data_rows} rows from API)")
             print(f"  - PNG files: {len(png_files)} files\n")
         else:
             print(f"⚠ No data returned, skipping PNG check")
