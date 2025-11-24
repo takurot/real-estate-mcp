@@ -29,49 +29,33 @@ class TestFetchSchoolDistrictsInput:
     def test_valid_input(self):
         """Test valid input."""
         payload = FetchSchoolDistrictsInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
+            z=11,
+            x=1819,
+            y=806,
         )
-        assert payload.area == "13"
-        assert payload.z == 10
-        assert payload.x == 100
-        assert payload.y == 200
-        assert payload.crs is None
+        assert payload.z == 11
+        assert payload.x == 1819
+        assert payload.y == 806
+        assert payload.administrative_area_code is None
 
-    def test_valid_input_with_crs(self):
-        """Test valid input with CRS."""
+    def test_valid_input_with_admin_code(self):
+        """Test valid input with administrative area code."""
         payload = FetchSchoolDistrictsInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
-            crs="EPSG:4326",
+            z=11,
+            x=1819,
+            y=806,
+            administrativeAreaCode="13108",
         )
-        assert payload.crs == "EPSG:4326"
-
-    def test_invalid_crs(self):
-        """Test that invalid CRS fails validation."""
-        with pytest.raises(ValidationError) as exc_info:
-            FetchSchoolDistrictsInput(
-                area="13",
-                z=10,
-                x=100,
-                y=200,
-                crs="INVALID",
-            )
-        assert "Invalid CRS code" in str(exc_info.value)
-
-    def test_valid_crs_formats(self):
-        """Test various valid CRS formats."""
-        # EPSG format
-        payload1 = FetchSchoolDistrictsInput(area="13", z=10, x=100, y=200, crs="EPSG:4326")
-        assert payload1.crs == "EPSG:4326"
+        assert payload.administrative_area_code == "13108"
         
-        # CRS format
-        payload2 = FetchSchoolDistrictsInput(area="13", z=10, x=100, y=200, crs="CRS:84")
-        assert payload2.crs == "CRS:84"
+    def test_zoom_level_validation(self):
+        """Test zoom level must be 11-15."""
+        with pytest.raises(ValidationError):
+            FetchSchoolDistrictsInput(
+                z=10,  # Too low
+                x=100,
+                y=100,
+            )
 
 
 class TestFetchSchoolDistrictsTool:
@@ -91,10 +75,9 @@ class TestFetchSchoolDistrictsTool:
         )
 
         payload = FetchSchoolDistrictsInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
+            z=11,
+            x=1819,
+            y=806,
         )
         result = await tool.run(payload)
 
@@ -106,8 +89,8 @@ class TestFetchSchoolDistrictsTool:
         assert decoded == mvt_content
 
     @pytest.mark.anyio
-    async def test_with_crs(self, tool, mock_http_client, tmp_path):
-        """Test request with CRS parameter."""
+    async def test_with_admin_code(self, tool, mock_http_client, tmp_path):
+        """Test request with administrative area code parameter."""
         mvt_content = b"\x1a\x04test"
         mvt_file = tmp_path / "test.mvt"
         mvt_file.write_bytes(mvt_content)
@@ -119,19 +102,18 @@ class TestFetchSchoolDistrictsTool:
         )
 
         payload = FetchSchoolDistrictsInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
-            crs="EPSG:4326",
+            z=11,
+            x=1819,
+            y=806,
+            administrativeAreaCode="13108",
         )
         result = await tool.run(payload)
 
-        assert result.meta.crs == "EPSG:4326"
+        assert result.meta.format == "geojson"  # default format
         
-        # Verify CRS was passed to API
+        # Verify admin code was passed to API
         call_args = mock_http_client.fetch.call_args
-        assert call_args.kwargs["params"]["crs"] == "EPSG:4326"
+        assert call_args.kwargs["params"]["administrativeAreaCode"] == "13108"
 
     @pytest.mark.anyio
     async def test_cache_hit(self, tool, mock_http_client, tmp_path):
@@ -147,10 +129,9 @@ class TestFetchSchoolDistrictsTool:
         )
 
         payload = FetchSchoolDistrictsInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
+            z=11,
+            x=1819,
+            y=806,
         )
         result = await tool.run(payload)
 
@@ -170,10 +151,9 @@ class TestFetchSchoolDistrictsTool:
         )
 
         payload = FetchSchoolDistrictsInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
+            z=11,
+            x=1819,
+            y=806,
             forceRefresh=True,
         )
         await tool.run(payload)

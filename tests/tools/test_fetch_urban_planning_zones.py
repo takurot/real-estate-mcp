@@ -46,48 +46,22 @@ class TestFetchUrbanPlanningZonesInput:
     def test_valid_input_with_tiles(self):
         """Test valid input with z/x/y tiles."""
         payload = FetchUrbanPlanningZonesInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
+            z=11,
+            x=1819,
+            y=806,
         )
-        assert payload.z == 10
-        assert payload.x == 100
-        assert payload.y == 200
-        assert payload.bbox is None
+        assert payload.z == 11
+        assert payload.x == 1819
+        assert payload.y == 806
 
-    def test_valid_input_with_bbox(self):
-        """Test valid input with bounding box."""
-        payload = FetchUrbanPlanningZonesInput(
-            area="13",
-            bbox="139.0,35.0,140.0,36.0",
-        )
-        assert payload.bbox == "139.0,35.0,140.0,36.0"
-        assert payload.z is None
-
-    def test_cannot_specify_both_tiles_and_bbox(self):
-        """Test that specifying both tiles and bbox fails."""
-        with pytest.raises(ValidationError) as exc_info:
+    def test_zoom_level_validation(self):
+        """Test zoom level must be 11-15."""
+        with pytest.raises(ValidationError):
             FetchUrbanPlanningZonesInput(
-                area="13",
-                z=10,
+                z=10,  # Too low
                 x=100,
-                y=200,
-                bbox="139.0,35.0,140.0,36.0",
+                y=100,
             )
-        assert "Cannot specify both" in str(exc_info.value)
-
-    def test_must_specify_either_tiles_or_bbox(self):
-        """Test that not specifying either tiles or bbox fails."""
-        with pytest.raises(ValidationError) as exc_info:
-            FetchUrbanPlanningZonesInput(area="13")
-        assert "Must specify either" in str(exc_info.value)
-
-    def test_incomplete_tile_specification(self):
-        """Test that incomplete tile specification fails."""
-        with pytest.raises(ValidationError) as exc_info:
-            FetchUrbanPlanningZonesInput(area="13", z=10, x=100)
-        assert "must specify all of z, x, and y" in str(exc_info.value)
 
 
 class TestFetchUrbanPlanningZonesTool:
@@ -102,10 +76,9 @@ class TestFetchUrbanPlanningZonesTool:
         )
 
         payload = FetchUrbanPlanningZonesInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
+            z=11,
+            x=1819,
+            y=806,
             responseFormat="geojson",
         )
         result = await tool.run(payload)
@@ -116,29 +89,9 @@ class TestFetchUrbanPlanningZonesTool:
 
         # Verify correct params were sent
         call_args = mock_http_client.fetch.call_args
-        assert call_args.kwargs["params"]["z"] == 10
-        assert call_args.kwargs["params"]["x"] == 100
-        assert call_args.kwargs["params"]["y"] == 200
-
-    @pytest.mark.anyio
-    async def test_bbox_request(self, tool, mock_http_client, sample_geojson):
-        """Test bbox request."""
-        mock_http_client.fetch.return_value = FetchResult(
-            data=sample_geojson,
-            from_cache=False,
-        )
-
-        payload = FetchUrbanPlanningZonesInput(
-            area="13",
-            bbox="139.0,35.0,140.0,36.0",
-        )
-        result = await tool.run(payload)
-
-        assert result.geojson == sample_geojson
-
-        # Verify bbox was sent
-        call_args = mock_http_client.fetch.call_args
-        assert call_args.kwargs["params"]["bbox"] == "139.0,35.0,140.0,36.0"
+        assert call_args.kwargs["params"]["z"] == 11
+        assert call_args.kwargs["params"]["x"] == 1819
+        assert call_args.kwargs["params"]["y"] == 806
 
     @pytest.mark.anyio
     async def test_pbf_format(self, tool, mock_http_client, tmp_path):
@@ -154,10 +107,9 @@ class TestFetchUrbanPlanningZonesTool:
         )
 
         payload = FetchUrbanPlanningZonesInput(
-            area="13",
-            z=10,
-            x=100,
-            y=200,
+            z=11,
+            x=1819,
+            y=806,
             responseFormat="pbf",
         )
         result = await tool.run(payload)

@@ -43,22 +43,38 @@ class TestFetchLandPricePointsInput:
     def test_valid_input_geojson(self):
         """Test valid input for GeoJSON format."""
         payload = FetchLandPricePointsInput(
-            area="13",
-            year=2024,
+            z=13,
+            x=7312,
+            y=3008,
+            year=2020,
             responseFormat="geojson",
         )
-        assert payload.area == "13"
-        assert payload.year == 2024
+        assert payload.z == 13
+        assert payload.x == 7312
+        assert payload.y == 3008
+        assert payload.year == 2020
         assert payload.response_format == "geojson"
 
     def test_valid_input_pbf(self):
         """Test valid input for PBF format."""
         payload = FetchLandPricePointsInput(
-            area="13",
+            z=14,
+            x=14624,
+            y=6016,
             year=2024,
             responseFormat="pbf",
         )
         assert payload.response_format == "pbf"
+        
+    def test_zoom_level_validation(self):
+        """Test zoom level must be 13-15."""
+        with pytest.raises(Exception):  # Pydantic validation error
+            FetchLandPricePointsInput(
+                z=10,  # Too low
+                x=100,
+                y=100,
+                year=2020,
+            )
 
 
 class TestFetchLandPricePointsTool:
@@ -73,8 +89,10 @@ class TestFetchLandPricePointsTool:
         )
 
         payload = FetchLandPricePointsInput(
-            area="13",
-            year=2024,
+            z=13,
+            x=7312,
+            y=3008,
+            year=2020,
             responseFormat="geojson",
         )
         result = await tool.run(payload)
@@ -99,8 +117,10 @@ class TestFetchLandPricePointsTool:
         )
 
         payload = FetchLandPricePointsInput(
-            area="13",
-            year=2024,
+            z=13,
+            x=7312,
+            y=3008,
+            year=2020,
             responseFormat="pbf",
         )
         result = await tool.run(payload)
@@ -122,8 +142,10 @@ class TestFetchLandPricePointsTool:
         )
 
         payload = FetchLandPricePointsInput(
-            area="13",
-            year=2024,
+            z=13,
+            x=7312,
+            y=3008,
+            year=2020,
         )
         result = await tool.run(payload)
 
@@ -138,8 +160,10 @@ class TestFetchLandPricePointsTool:
         )
 
         payload = FetchLandPricePointsInput(
-            area="13",
-            year=2024,
+            z=13,
+            x=7312,
+            y=3008,
+            year=2020,
             forceRefresh=True,
         )
         await tool.run(payload)
