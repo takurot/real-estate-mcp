@@ -184,15 +184,126 @@ output/
 
 5. **MCP ツールの使用**
    - Cursor のチャットで、以下のように自然言語で指示できます：
-     - 「mlit-mcp の list_municipalities ツールを使って東京（都道府県コード13）の市区町村一覧を取得して」
-     - 「東京都の市区町村データを取得して」
+      - 「mlit-mcp の list_municipalities ツールを使って東京（都道府県コード13）の市区町村一覧を取得して」
+      - 「東京都の2020年から2024年の取引データを取得して」
+      - 「東京都の取引ポイントをGeoJSONで取得して」
 
 ### 利用可能な MCP ツール
 
-- **`list_municipalities`**: 指定された都道府県内の市区町村一覧を取得
-  - パラメータ:
-    - `prefecture_code`: 2桁の都道府県コード（例: "13" は東京都）
-    - `lang`: 言語（"ja" または "en"、デフォルト: "ja"）
+#### 1. `mlit.list_municipalities`
+指定された都道府県内の市区町村一覧を取得
+
+**パラメータ:**
+- `prefectureCode` (string, required): 2桁の都道府県コード（例: "13" は東京都）
+- `lang` (string, optional): 言語（"ja" または "en"、デフォルト: "ja"）
+- `forceRefresh` (boolean, optional): キャッシュをバイパスして最新データを取得
+
+**レスポンス:**
+```json
+{
+  "prefectureCode": "13",
+  "municipalities": [
+    {"code": "13101", "name": "千代田区"},
+    {"code": "13102", "name": "中央区"}
+  ],
+  "meta": {"cacheHit": false, "dataset": "XIT002"}
+}
+```
+
+#### 2. `mlit.fetch_transactions`
+不動産取引データの集計版を取得（XIT001 API）
+
+**パラメータ:**
+- `fromYear` (integer, required): 開始年（2005-2030）
+- `toYear` (integer, required): 終了年（2005-2030）
+- `area` (string, required): エリアコード（都道府県または市区町村コード）
+- `classification` (string, optional): 取引分類コード
+- `format` (string, optional): レスポンス形式（"json" または "table"、デフォルト: "json"）
+- `forceRefresh` (boolean, optional): キャッシュをバイパス
+
+**レスポンス:**
+```json
+{
+  "data": [...],
+  "meta": {"cacheHit": false, "format": "json", "dataset": "XIT001"}
+}
+```
+
+#### 3. `mlit.fetch_transaction_points`
+不動産取引ポイントデータをGeoJSONで取得（XIT003 API）
+
+**パラメータ:**
+- `area` (string, required): エリアコード
+- `fromYear` (integer, required): 開始年
+- `toYear` (integer, required): 終了年
+- `bbox` (object, optional): バウンディングボックスフィルター
+  - `minLon`, `minLat`, `maxLon`, `maxLat`
+- `forceRefresh` (boolean, optional): キャッシュをバイパス
+
+**レスポンス:**
+- 小さいデータ（<1MB）: GeoJSONを直接返却
+- 大きいデータ（≥1MB）: `resourceUri` を返却（`resource://` プロトコル）
+
+```json
+{
+  "geojson": {"type": "FeatureCollection", "features": [...]},
+  "meta": {"cacheHit": false, "sizeBytes": 524288, "isResource": false}
+}
+```
+
+#### 4. `mlit.fetch_land_price_points`
+地価公示ポイントデータを取得（XKT001 API）
+
+**パラメータ:**
+- `area` (string, required): エリアコード
+- `year` (integer, required): 対象年
+- `responseFormat` (string, optional): "geojson" または "pbf"（デフォルト: "geojson"）
+- `forceRefresh` (boolean, optional): キャッシュをバイパス
+
+**レスポンス:**
+- GeoJSON形式: `geojson` フィールドにデータ
+- PBF形式: `pbfBase64` フィールドにBase64エンコードされたMVTデータ
+
+#### 5. `mlit.fetch_urban_planning_zones`
+都市計画区域データを取得（XKT011 API）
+
+**パラメータ:**
+- `area` (string, required): エリアコード
+- タイル指定（z/x/y）または bbox のいずれか:
+  - `z` (integer): ズームレベル（0-18）
+  - `x` (integer): タイルX座標
+  - `y` (integer): タイルY座標
+  - `bbox` (string): "minLon,minLat,maxLon,maxLat" 形式
+- `responseFormat` (string, optional): "geojson" または "pbf"
+- `forceRefresh` (boolean, optional): キャッシュをバイパス
+
+**注意:** z/x/y と bbox は同時に指定できません。
+
+#### 6. `mlit.fetch_school_districts`
+小学校区タイルデータを取得（XKT021 API）
+
+**パラメータ:**
+- `area` (string, required): エリアコード
+- `z` (integer, required): ズームレベル（0-18）
+- `x` (integer, required): タイルX座標
+- `y` (integer, required): タイルY座標
+- `crs` (string, optional): 座標参照系（例: "EPSG:4326"）
+- `forceRefresh` (boolean, optional): キャッシュをバイパス
+
+**レスポンス:**
+```json
+{
+  "mvtBase64": "GhsKBnNjaG9vbC4uLg==",
+  "meta": {"cacheHit": false, "crs": "EPSG:4326"}
+}
+```
+
+### キャッシュとパフォーマンス
+
+- **キャッシュTTL**: 6時間（JSONレスポンス）
+- **キャッシュサイズ**: 最大256エントリ（LRU）
+- **force_refresh**: 全ツールで `forceRefresh: true` を指定することでキャッシュをバイパス可能
+- **リトライ**: 429/5xxエラー時に指数バックオフで自動リトライ（最大4回）
 
 ### 設定例ファイル
 

@@ -76,14 +76,61 @@ def create_app() -> FastAPI:
 
     @app.post("/list_resources", tags=["mcp"])
     async def list_resources() -> dict[str, list]:
-        return {"resources": []}
+        """List available resources (cached GeoJSON files)."""
+        http_client = getattr(app.state, "http_client", None)
+        if not http_client or not hasattr(http_client, "_file_cache"):
+            return {"resources": []}
+
+        file_cache = http_client._file_cache
+        cache_dir = file_cache._cache_dir
+        
+        resources = []
+        if cache_dir.exists():
+            for file_path in cache_dir.glob("*.geojson"):
+                resources.append({
+                    "uri": f"resource://mlit/transaction_points/{file_path.name}",
+                    "name": file_path.stem,
+                    "mimeType": "application/geo+json",
+                    "description": f"Cached GeoJSON transaction points data",
+                })
+        
+        return {"resources": resources}
 
     @app.post("/read_resource", tags=["mcp"])
     async def read_resource(payload: dict = Body(default_factory=dict)) -> JSONResponse:
-        resource_id = payload.get("resourceId")
-        if not resource_id:
-            raise HTTPException(status_code=400, detail="resourceId is required")
-        raise HTTPException(status_code=404, detail=f"Resource '{resource_id}' was not found.")
+        """Read a resource by URI."""
+        resource_uri = payload.get("uri") or payload.get("resourceId")
+        if not resource_uri:
+            raise HTTPException(status_code=400, detail="uri or resourceId is required")
+        
+        # Parse resource URI: resource://mlit/transaction_points/{filename}
+        if not resource_uri.startswith("resource://mlit/transaction_points/"):
+            raise HTTPException(status_code=404, detail=f"Resource '{resource_uri}' not found")
+        
+        filename = resource_uri.split("/")[-1]
+        
+        http_client = getattr(app.state, "http_client", None)
+        if not http_client or not hasattr(http_client, "_file_cache"):
+            raise HTTPException(status_code=500, detail="File cache not available")
+        
+        file_cache = http_client._file_cache
+        cache_dir = file_cache._cache_dir
+        file_path = cache_dir / filename
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail=f"Resource file '{filename}' not found")
+        
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            return JSONResponse(content={
+                "contents": [{
+                    "uri": resource_uri,
+                    "mimeType": "application/geo+json",
+                    "text": content,
+                }]
+            })
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to read resource: {exc}") from exc
 
     return app
 
