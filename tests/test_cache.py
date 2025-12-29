@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 
 from mlit_mcp.cache import BinaryFileCache, InMemoryTTLCache
 
@@ -38,4 +37,3 @@ def test_binary_cache_writes_files_and_expires(tmp_path: Path) -> None:
     clock.advance(6)
     assert cache.get("bar") is None
     assert not path.exists()
-

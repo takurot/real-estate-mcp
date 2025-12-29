@@ -16,4 +16,6 @@ cachetools>=5.3.3
 trio>=0.26.0
 mcp>=1.0.0
 fastmcp>=2.0.0
+pytest-httpx>=0.20.0
+pytest-asyncio>=0.23.0
 

@@ -70,7 +70,12 @@ class _FileEntry:
 class BinaryFileCache:
     """Persist binary payloads to disk with TTL-based invalidation."""
 
-    def __init__(self, directory: Path | str, ttl_seconds: float = 6 * 60 * 60, clock: ClockFn | None = None) -> None:
+    def __init__(
+        self,
+        directory: Path | str,
+        ttl_seconds: float = 6 * 60 * 60,
+        clock: ClockFn | None = None,
+    ) -> None:
         if ttl_seconds <= 0:
             raise ValueError("ttl_seconds must be positive")
         self._directory = Path(directory)
@@ -97,7 +102,11 @@ class BinaryFileCache:
         return entry.path
 
     def purge_expired(self) -> None:
-        to_remove = [key for key, entry in self._entries.items() if self._clock() >= entry.expires_at or not entry.path.exists()]
+        to_remove = [
+            key
+            for key, entry in self._entries.items()
+            if self._clock() >= entry.expires_at or not entry.path.exists()
+        ]
         for key in to_remove:
             path = self._entries[key].path
             self._evict(key, path)
@@ -122,5 +131,3 @@ class BinaryFileCache:
     @staticmethod
     def _digest(key: str) -> str:
         return hashlib.sha256(key.encode("utf-8")).hexdigest()
-
-

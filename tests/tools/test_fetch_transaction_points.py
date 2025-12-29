@@ -111,7 +111,9 @@ class TestFetchTransactionPointsTool:
     """Test FetchTransactionPointsTool functionality."""
 
     @pytest.mark.anyio
-    async def test_small_geojson_direct_return(self, tool, mock_http_client, sample_geojson):
+    async def test_small_geojson_direct_return(
+        self, tool, mock_http_client, sample_geojson
+    ):
         """Test small GeoJSON is returned directly."""
         mock_http_client.fetch.return_value = FetchResult(
             data=sample_geojson,
@@ -131,14 +133,19 @@ class TestFetchTransactionPointsTool:
         assert result.meta.cache_hit is False
 
     @pytest.mark.anyio
-    async def test_large_geojson_resource_return(self, tool, mock_http_client, tmp_path):
+    async def test_large_geojson_resource_return(
+        self, tool, mock_http_client, tmp_path
+    ):
         """Test large GeoJSON is returned as resource URI."""
         # Create a large GeoJSON file
         large_geojson = {
             "type": "FeatureCollection",
-            "features": [{"type": "Feature", "properties": {"data": "x" * 100000}} for _ in range(20)],
+            "features": [
+                {"type": "Feature", "properties": {"data": "x" * 100000}}
+                for _ in range(20)
+            ],
         }
-        
+
         geojson_file = tmp_path / "large.geojson"
         geojson_file.write_text(json.dumps(large_geojson))
 

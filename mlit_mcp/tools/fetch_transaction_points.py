@@ -45,7 +45,9 @@ class FetchTransactionPointsInput(BaseModel):
     """Input schema for the fetch_transaction_points tool."""
 
     area: str = Field(description="Area code (prefecture or city code)")
-    from_year: int = Field(alias="fromYear", description="Starting year", ge=2005, le=2030)
+    from_year: int = Field(
+        alias="fromYear", description="Starting year", ge=2005, le=2030
+    )
     to_year: int = Field(alias="toYear", description="Ending year", ge=2005, le=2030)
     bbox: BoundingBox | None = Field(
         default=None,
@@ -113,19 +115,21 @@ class FetchTransactionPointsTool:
         result = await self.run(payload)
         return result.model_dump(by_alias=True, exclude_none=True)
 
-    async def run(self, payload: FetchTransactionPointsInput) -> FetchTransactionPointsResponse:
+    async def run(
+        self, payload: FetchTransactionPointsInput
+    ) -> FetchTransactionPointsResponse:
         # XPT001 API requires z/x/y tile coordinates and from/to in YYYYQ format
         # We need to convert year to quarter format (e.g., 2023 -> 20231 for Q1)
         # For simplicity, we'll use Q1 of from_year and Q4 of to_year
         from_quarter = f"{payload.from_year}1"  # Q1 of from_year
         to_quarter = f"{payload.to_year}4"  # Q4 of to_year
-        
+
         params = {
             "response_format": "geojson",
             "from": from_quarter,
             "to": to_quarter,
         }
-        
+
         # Note: XPT001 requires z/x/y tile coordinates, but we don't have them in the input
         # This is a design issue - we should either:
         # 1. Add z/x/y to the input schema, or
@@ -176,7 +180,9 @@ class FetchTransactionPointsTool:
 
         if is_large and fetch_result.file_path:
             # Return as resource URI
-            resource_uri = f"resource://mlit/transaction_points/{fetch_result.file_path.name}"
+            resource_uri = (
+                f"resource://mlit/transaction_points/{fetch_result.file_path.name}"
+            )
             return FetchTransactionPointsResponse(
                 resource_uri=resource_uri,
                 meta=meta,
@@ -188,7 +194,9 @@ class FetchTransactionPointsTool:
                 meta=meta,
             )
 
-    def _filter_by_bbox(self, geojson: dict[str, Any], bbox: BoundingBox) -> dict[str, Any]:
+    def _filter_by_bbox(
+        self, geojson: dict[str, Any], bbox: BoundingBox
+    ) -> dict[str, Any]:
         """Filter GeoJSON features by bounding box."""
         if not isinstance(geojson, dict) or "features" not in geojson:
             return geojson
@@ -215,8 +223,7 @@ class FetchTransactionPointsTool:
 
         lon, lat = coordinates[0], coordinates[1]
         return (
-            bbox.min_lon <= lon <= bbox.max_lon
-            and bbox.min_lat <= lat <= bbox.max_lat
+            bbox.min_lon <= lon <= bbox.max_lon and bbox.min_lat <= lat <= bbox.max_lat
         )
 
 

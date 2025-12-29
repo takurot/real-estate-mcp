@@ -13,7 +13,11 @@ logger = logging.getLogger(__name__)
 class Municipality(BaseModel):
     """Normalized municipality entry."""
 
-    code: str = Field(description="5-digit municipality code assigned by MLIT", min_length=5, max_length=5)
+    code: str = Field(
+        description="5-digit municipality code assigned by MLIT",
+        min_length=5,
+        max_length=5,
+    )
     name: str = Field(description="Municipality name", min_length=1)
 
     model_config = ConfigDict(populate_by_name=True)
@@ -38,7 +42,10 @@ class ListMunicipalitiesResponse(BaseModel):
 class ListMunicipalitiesInput(BaseModel):
     """Input schema for the list_municipalities tool."""
 
-    prefecture_code: str = Field(alias="prefectureCode", description="Two digit prefecture code, e.g. '13' for Tokyo")
+    prefecture_code: str = Field(
+        alias="prefectureCode",
+        description="Two digit prefecture code, e.g. '13' for Tokyo",
+    )
     lang: str = Field(default="ja", description="Language for the response (ja/en)")
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
@@ -102,7 +109,11 @@ class ListMunicipalitiesTool:
         )
 
         meta = ResponseMeta(cache_hit=fetch_result.from_cache)
-        return ListMunicipalitiesResponse(prefecture_code=payload.prefecture_code, municipalities=municipalities, meta=meta)
+        return ListMunicipalitiesResponse(
+            prefecture_code=payload.prefecture_code,
+            municipalities=municipalities,
+            meta=meta,
+        )
 
     def _transform_records(self, fetch_result: FetchResult) -> list[Municipality]:
         source = fetch_result.data
@@ -125,9 +136,7 @@ class ListMunicipalitiesTool:
                 or entry.get("code")
             )
             name = (
-                entry.get("cityName")
-                or entry.get("Municipality")
-                or entry.get("name")
+                entry.get("cityName") or entry.get("Municipality") or entry.get("name")
             )
             if not code or not name:
                 continue
@@ -137,7 +146,9 @@ class ListMunicipalitiesTool:
                 continue
 
         if not municipalities:
-            raise ValueError("MLIT API returned no municipalities for the provided prefecture code.")
+            raise ValueError(
+                "MLIT API returned no municipalities for the provided prefecture code."
+            )
 
         return municipalities
 
@@ -156,4 +167,3 @@ __all__ = [
     "ListMunicipalitiesTool",
     "Municipality",
 ]
-

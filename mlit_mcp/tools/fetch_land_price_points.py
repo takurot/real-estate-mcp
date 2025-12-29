@@ -76,7 +76,9 @@ class FetchLandPricePointsTool:
         result = await self.run(payload)
         return result.model_dump(by_alias=True, exclude_none=True)
 
-    async def run(self, payload: FetchLandPricePointsInput) -> FetchLandPricePointsResponse:
+    async def run(
+        self, payload: FetchLandPricePointsInput
+    ) -> FetchLandPricePointsResponse:
         params = {
             "response_format": payload.response_format,
             "z": payload.z,
@@ -115,8 +117,10 @@ class FetchLandPricePointsTool:
                 pbf_content = fetch_result.file_path.read_bytes()
             else:
                 # If data is in memory (shouldn't happen for pbf, but handle it)
-                pbf_content = fetch_result.data if isinstance(fetch_result.data, bytes) else b""
-            
+                pbf_content = (
+                    fetch_result.data if isinstance(fetch_result.data, bytes) else b""
+                )
+
             pbf_base64 = encode_mvt_to_base64(pbf_content)
             return FetchLandPricePointsResponse(
                 pbf_base64=pbf_base64,

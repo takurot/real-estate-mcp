@@ -23,7 +23,7 @@
 | PR | タイトル | 概要 | 依存 |
 | -- | -- | -- | -- |
 | **PR1** | サーバー雛形と設定基盤 | MCP サーバー骨格、設定ロード (完了済み) | - |
-| **PR2** | HTTP クライアント＆キャッシュ層 | 共通 HTTP/Retry/LRU/FileCache | PR1 |
+| **PR2** | HTTP クライアント＆キャッシュ層 | 共通 HTTP/Retry/LRU/FileCache (完了) | PR1 |
 | **PR3** | `list_municipalities` ツール | 市区町村一覧 (XIT002) | PR2 |
 | **PR4** | `fetch_transactions` ツール | 取引データ (XIT001) + 整形 | PR2 |
 | **PR5** | `fetch_transaction_points` ツール | 取引ポイント (XIT003) + resource 化 | PR2 |

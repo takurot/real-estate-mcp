@@ -46,17 +46,22 @@ def _get_http_client() -> Any:
 
 
 @mcp.tool()
-async def list_municipalities(prefecture_code: str, lang: str = "ja", force_refresh: bool = False) -> dict:
+async def list_municipalities(
+    prefecture_code: str, lang: str = "ja", force_refresh: bool = False
+) -> dict:
     """
     Return the list of municipalities within the specified prefecture using MLIT dataset XIT002.
-    
+
     Args:
         prefecture_code: Two digit prefecture code, e.g. '13' for Tokyo
         lang: Language for the response (ja/en), defaults to 'ja'
         force_refresh: If true, bypass cache and fetch fresh data
     """
-    from .tools.list_municipalities import ListMunicipalitiesInput, ListMunicipalitiesTool
-    
+    from .tools.list_municipalities import (
+        ListMunicipalitiesInput,
+        ListMunicipalitiesTool,
+    )
+
     tool = ListMunicipalitiesTool(http_client=_get_http_client())
     input_data = ListMunicipalitiesInput(
         prefecture_code=prefecture_code,
@@ -77,7 +82,7 @@ async def fetch_transactions(
 ) -> dict:
     """
     Fetch aggregated real estate transaction data from MLIT dataset XIT001.
-    
+
     Args:
         from_year: Starting year (2005-2030)
         to_year: Ending year (2005-2030)
@@ -87,7 +92,7 @@ async def fetch_transactions(
         force_refresh: If true, bypass cache and fetch fresh data
     """
     from .tools.fetch_transactions import FetchTransactionsInput, FetchTransactionsTool
-    
+
     tool = FetchTransactionsTool(http_client=_get_http_client())
     input_data = FetchTransactionsInput(
         from_year=from_year,
@@ -112,7 +117,7 @@ async def fetch_transaction_points(
     """
     Fetch real estate transaction points as GeoJSON from MLIT dataset XIT003.
     Large responses (>1MB) are returned as resource URIs.
-    
+
     Args:
         area: Area code (prefecture or city code)
         from_year: Starting year (2005-2030)
@@ -120,8 +125,11 @@ async def fetch_transaction_points(
         bbox: Optional bounding box filter with minLon, minLat, maxLon, maxLat
         force_refresh: If true, bypass cache and fetch fresh data
     """
-    from .tools.fetch_transaction_points import FetchTransactionPointsInput, FetchTransactionPointsTool
-    
+    from .tools.fetch_transaction_points import (
+        FetchTransactionPointsInput,
+        FetchTransactionPointsTool,
+    )
+
     tool = FetchTransactionPointsTool(http_client=_get_http_client())
     input_data = FetchTransactionPointsInput(
         area=area,
@@ -146,7 +154,7 @@ async def fetch_land_price_points(
     """
     Fetch land price (地価公示) point data from MLIT dataset XPT002.
     Supports both GeoJSON and PBF (Protocol Buffer) formats.
-    
+
     Args:
         z: Zoom level (13-15)
         x: Tile X coordinate
@@ -155,8 +163,11 @@ async def fetch_land_price_points(
         response_format: 'geojson' or 'pbf', defaults to 'geojson'
         force_refresh: If true, bypass cache and fetch fresh data
     """
-    from .tools.fetch_land_price_points import FetchLandPricePointsInput, FetchLandPricePointsTool
-    
+    from .tools.fetch_land_price_points import (
+        FetchLandPricePointsInput,
+        FetchLandPricePointsTool,
+    )
+
     tool = FetchLandPricePointsTool(http_client=_get_http_client())
     input_data = FetchLandPricePointsInput(
         z=z,
@@ -181,7 +192,7 @@ async def fetch_urban_planning_zones(
     """
     Fetch urban planning zone (都市計画区域) data from MLIT dataset XKT001.
     Requires z/x/y tile coordinates.
-    
+
     Args:
         z: Zoom level (11-15)
         x: Tile X coordinate
@@ -189,8 +200,11 @@ async def fetch_urban_planning_zones(
         response_format: 'geojson' or 'pbf', defaults to 'geojson'
         force_refresh: If true, bypass cache and fetch fresh data
     """
-    from .tools.fetch_urban_planning_zones import FetchUrbanPlanningZonesInput, FetchUrbanPlanningZonesTool
-    
+    from .tools.fetch_urban_planning_zones import (
+        FetchUrbanPlanningZonesInput,
+        FetchUrbanPlanningZonesTool,
+    )
+
     tool = FetchUrbanPlanningZonesTool(http_client=_get_http_client())
     input_data = FetchUrbanPlanningZonesInput(
         z=z,
@@ -215,7 +229,7 @@ async def fetch_school_districts(
     """
     Fetch elementary school district (小学校区) tile data from MLIT dataset XKT004.
     Returns MVT (Mapbox Vector Tile) data encoded as base64.
-    
+
     Args:
         z: Zoom level (11-15)
         x: Tile X coordinate
@@ -224,8 +238,11 @@ async def fetch_school_districts(
         response_format: 'geojson' or 'pbf', defaults to 'geojson'
         force_refresh: If true, bypass cache and fetch fresh data
     """
-    from .tools.fetch_school_districts import FetchSchoolDistrictsInput, FetchSchoolDistrictsTool
-    
+    from .tools.fetch_school_districts import (
+        FetchSchoolDistrictsInput,
+        FetchSchoolDistrictsTool,
+    )
+
     tool = FetchSchoolDistrictsTool(http_client=_get_http_client())
     input_data = FetchSchoolDistrictsInput(
         z=z,

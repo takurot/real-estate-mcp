@@ -36,7 +36,10 @@ def http_client(monkeypatch, tmp_path):
 
 @pytest.mark.anyio
 async def test_tool_fetches_and_formats_result(http_client):
-    from mlit_mcp.tools.list_municipalities import ListMunicipalitiesInput, ListMunicipalitiesTool
+    from mlit_mcp.tools.list_municipalities import (
+        ListMunicipalitiesInput,
+        ListMunicipalitiesTool,
+    )
 
     tool = ListMunicipalitiesTool(http_client=http_client)
     payload = ListMunicipalitiesInput(prefecture_code="13")
@@ -57,4 +60,3 @@ def test_input_validation_rejects_invalid_prefecture_code():
 
     with pytest.raises(ValidationError):
         ListMunicipalitiesInput(prefecture_code="1")
-

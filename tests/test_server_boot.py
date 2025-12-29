@@ -28,7 +28,9 @@ def test_call_tool_endpoint_requires_name(client):
 
 
 def test_call_tool_executes_list_municipalities(client, monkeypatch):
-    async def fake_fetch(self, endpoint, *, params, response_format, force_refresh=False):
+    async def fake_fetch(
+        self, endpoint, *, params, response_format, force_refresh=False
+    ):
         assert endpoint == "XIT002"
         assert params["area"] == "13"
         assert response_format == "json"
@@ -37,15 +39,19 @@ def test_call_tool_executes_list_municipalities(client, monkeypatch):
             from_cache=False,
         )
 
-    monkeypatch.setattr("mlit_mcp.http_client.MLITHttpClient.fetch", fake_fetch, raising=True)
+    monkeypatch.setattr(
+        "mlit_mcp.http_client.MLITHttpClient.fetch", fake_fetch, raising=True
+    )
 
     response = client.post(
         "/call_tool",
-        json={"toolName": "mlit.list_municipalities", "arguments": {"prefectureCode": "13"}},
+        json={
+            "toolName": "mlit.list_municipalities",
+            "arguments": {"prefectureCode": "13"},
+        },
     )
 
     assert response.status_code == 200
     payload = response.json()
     assert payload["data"]["prefectureCode"] == "13"
     assert payload["data"]["municipalities"][0]["code"] == "13101"
-
