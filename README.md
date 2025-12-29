@@ -1,387 +1,85 @@
-# 不動産価格成長率分析ツール
+# MLIT Real Estate MCP Server
 
-国交省「不動産取引価格情報」APIを使用して、都道府県ごとの市区町村単位での不動産価格の時系列変化（傾き）を分析し、成長率が高い市区町村を可視化するツールです。
+日本の国土交通省「不動産情報ライブラリ」API を利用し、不動産取引価格・地価公示・都市計画などの情報を LLM (Large Language Model) エージェントに提供する MCP (Model Context Protocol) サーバーです。
 
-## 機能
+## 特徴
 
-- 都道府県ごとの市区町村単位データを年度別に取得
-- 価格の時間変化（傾き）を計算し、成長率が高い市区町村を抽出
-- グラフ（PNG）とCSVデータの出力
-- CLI インターフェースによる柔軟な設定
+- **MCP 対応**: Cursor, Claude Desktop などの MCP クライアントから直接利用可能。
+- **キャッシュ機能**: API レスポンスをキャッシュし、API 制限や待機時間を緩和。
+- **GeoJSON/MVT 対応**: 大規模な地理データは MCP の `resource://` として効率的に受け渡し。
+- **堅牢性**: レート制限 (429) やサーバーエラーに対する自動リトライ。
 
-## セットアップ
-
-### 前提条件
+## 必要なもの
 
 - Python 3.11 以上
-- 国交省 API キー（[申請ページ](https://www.reinfolib.mlit.go.jp/ex-api/external/XIT001)）
+- **国土交通省 API キー**
+  - [不動産情報ライブラリ API 利用申請](https://www.reinfolib.mlit.go.jp/ex-api/external/XIT001) から取得してください。
 
-### インストール
+## インストール
 
-1. リポジトリをクローン
-```bash
-git clone https://github.com/takurot/real-estate-heatmap.git
-cd real-estate-heatmap
-```
-
-2. 仮想環境を作成・有効化
-```bash
-python3 -m venv env
-source env/bin/activate  # macOS/Linux
-# または
-env\Scripts\activate  # Windows
-```
-
-3. 依存パッケージをインストール
-```bash
-pip install -r requirements.txt
-```
-
-4. 環境変数の設定
-```bash
-# .env ファイルを作成
-cp .env.example .env
-
-# .env ファイルを編集してAPIキーを設定
-# HUDOUSAN_API_KEY=your_api_key_here
-```
-
-## 使い方
-
-### 基本的な使い方
-
-```bash
-# デフォルト設定（全47都道府県、2015-2024年、上位5件）
-python evalGrowthRate.py
-
-# 特定の都道府県のみ（東京都と神奈川県）
-python evalGrowthRate.py --prefectures 13 14
-
-# 年度範囲と上位件数を指定
-python evalGrowthRate.py --start-year 2020 --end-year 2024 --top-n 10
-
-# 出力先を変更
-python evalGrowthRate.py --output-dir my_output
-```
-
-### コマンドラインオプション
-
-- `--start-year`: 開始年（デフォルト: 2015）
-- `--end-year`: 終了年（デフォルト: 2024）
-- `--top-n`: 上位何件を表示するか（デフォルト: 5）
-- `--prefectures`: 対象都道府県コード（例: 13 14）。指定しない場合は全47都道府県
-- `--output-dir`: 出力ディレクトリ（デフォルト: output）
-- `--help`: ヘルプメッセージを表示
-
-### 都道府県コード一覧
-
-| コード | 都道府県 | コード | 都道府県 |
-|--------|----------|--------|----------|
-| 01 | 北海道 | 25 | 滋賀県 |
-| 02 | 青森県 | 26 | 京都府 |
-| 03 | 岩手県 | 27 | 大阪府 |
-| 04 | 宮城県 | 28 | 兵庫県 |
-| 05 | 秋田県 | 29 | 奈良県 |
-| 06 | 山形県 | 30 | 和歌山県 |
-| 07 | 福島県 | 31 | 鳥取県 |
-| 08 | 茨城県 | 32 | 島根県 |
-| 09 | 栃木県 | 33 | 岡山県 |
-| 10 | 群馬県 | 34 | 広島県 |
-| 11 | 埼玉県 | 35 | 山口県 |
-| 12 | 千葉県 | 36 | 徳島県 |
-| 13 | 東京都 | 37 | 香川県 |
-| 14 | 神奈川県 | 38 | 愛媛県 |
-| 15 | 新潟県 | 39 | 高知県 |
-| 16 | 富山県 | 40 | 福岡県 |
-| 17 | 石川県 | 41 | 佐賀県 |
-| 18 | 福井県 | 42 | 長崎県 |
-| 19 | 山梨県 | 43 | 熊本県 |
-| 20 | 長野県 | 44 | 大分県 |
-| 21 | 岐阜県 | 45 | 宮崎県 |
-| 22 | 静岡県 | 46 | 鹿児島県 |
-| 23 | 愛知県 | 47 | 沖縄県 |
-| 24 | 三重県 | | |
-
-## 出力構造
-
-```
-output/
-├── 13/  # 東京都
-│   ├── plots/
-│   │   ├── growth_with_price_13.png
-│   │   └── growth_with_price_per_unit_13.png
-│   └── tables/
-│       └── df_grouped.csv
-├── 14/  # 神奈川県
-│   └── ...
-└── ...
-```
-
-- **plots/**: グラフ画像（PNG形式、DPI 150）
-  - `growth_with_price_{pref}.png`: 平均価格の推移
-  - `growth_with_price_per_unit_{pref}.png`: 平均坪単価の推移
-- **tables/**: 集計データ（CSV形式）
-  - `df_grouped.csv`: 市区町村 × 年度の集計データ
-
-### CSVファイルの列
-
-| 列名           | 型    | 説明                              |
-| -------------- | ----- | --------------------------------- |
-| `CityCode`     | str   | 5 桁市区町村コード（例: "13101"） |
-| `CityName`     | str   | 市区町村名（例: "千代田区"）      |
-| `Year`         | int   | 年度（例: 2024）                  |
-| `Price`        | float | 平均取引価格（万円）              |
-| `PricePerUnit` | float | 平均坪単価（万円/坪）             |
-
-## Cursor IDE からの MCP アクセス
-
-このプロジェクトには MCP（Model Context Protocol）サーバーが含まれており、Cursor IDE から直接アクセスできます。
-
-### MCP サーバーの設定
-
-1. **環境変数の設定**
-   - `.env` ファイルに `MLIT_API_KEY` を設定してください（`HUDOUSAN_API_KEY` と同じ値を使用可能）
-
-2. **Cursor の MCP 設定**
-   - Cursor の設定ファイルに MCP サーバーを追加します
-   - 設定ファイルの場所：
-     - **macOS**: `~/Library/Application Support/Cursor/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json`
-     - **Windows**: `%APPDATA%\Cursor\User\globalStorage\rooveterinaryinc.roo-cline\settings\cline_mcp_settings.json`
-     - **Linux**: `~/.config/Cursor/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json`
-
-3. **設定例**（仮想環境を使用する場合）:
-   ```json
-   {
-     "mcpServers": {
-       "mlit-mcp": {
-         "command": "/path/to/real-estate/env/bin/python",
-         "args": ["-m", "mlit_mcp"],
-         "env": {
-           "MLIT_API_KEY": "your-api-key-here"
-         }
-       }
-     }
-   }
+1. リポジトリをクローン:
+   ```bash
+   git clone https://github.com/takurot/real-estate-heatmap.git
+   cd real-estate-heatmap
    ```
 
-   仮想環境を使わない場合:
-   ```json
-   {
-     "mcpServers": {
-       "mlit-mcp": {
-         "command": "python",
-         "args": ["-m", "mlit_mcp"],
-         "env": {
-           "MLIT_API_KEY": "your-api-key-here"
-         }
-       }
-     }
-   }
+2. 依存パッケージのインストール:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
    ```
 
-4. **Cursor の再起動**
-   - 設定を反映させるため、Cursor を再起動してください
+3. 環境変数の設定:
+   `.env` ファイルを作成し、API キーを設定します。
+   ```bash
+   MLIT_API_KEY=your_api_key_here
+   ```
 
-5. **MCP ツールの使用**
-   - Cursor のチャットで、以下のように自然言語で指示できます：
-      - 「mlit-mcp の list_municipalities ツールを使って東京（都道府県コード13）の市区町村一覧を取得して」
-      - 「東京都の2020年から2024年の取引データを取得して」
-      - 「東京都の取引ポイントをGeoJSONで取得して」
+## 使い方 (MCP サーバーとして実行)
 
-### 利用可能な MCP ツール
+### 1. Cursor / Claude Desktop での設定
 
-#### 1. `mlit.list_municipalities`
-指定された都道府県内の市区町村一覧を取得
-
-**パラメータ:**
-- `prefectureCode` (string, required): 2桁の都道府県コード（例: "13" は東京都）
-- `lang` (string, optional): 言語（"ja" または "en"、デフォルト: "ja"）
-- `forceRefresh` (boolean, optional): キャッシュをバイパスして最新データを取得
-
-**レスポンス:**
-```json
-{
-  "prefectureCode": "13",
-  "municipalities": [
-    {"code": "13101", "name": "千代田区"},
-    {"code": "13102", "name": "中央区"}
-  ],
-  "meta": {"cacheHit": false, "dataset": "XIT002"}
-}
-```
-
-#### 2. `mlit.fetch_transactions`
-不動産取引データの集計版を取得（XIT001 API）
-
-**パラメータ:**
-- `fromYear` (integer, required): 開始年（2005-2030）
-- `toYear` (integer, required): 終了年（2005-2030）
-- `area` (string, required): エリアコード（都道府県または市区町村コード）
-- `classification` (string, optional): 取引分類コード
-- `format` (string, optional): レスポンス形式（"json" または "table"、デフォルト: "json"）
-- `forceRefresh` (boolean, optional): キャッシュをバイパス
-
-**レスポンス:**
-```json
-{
-  "data": [...],
-  "meta": {"cacheHit": false, "format": "json", "dataset": "XIT001"}
-}
-```
-
-#### 3. `mlit.fetch_transaction_points`
-不動産取引ポイントデータをGeoJSONで取得（XIT003 API）
-
-**パラメータ:**
-- `area` (string, required): エリアコード
-- `fromYear` (integer, required): 開始年
-- `toYear` (integer, required): 終了年
-- `bbox` (object, optional): バウンディングボックスフィルター
-  - `minLon`, `minLat`, `maxLon`, `maxLat`
-- `forceRefresh` (boolean, optional): キャッシュをバイパス
-
-**レスポンス:**
-- 小さいデータ（<1MB）: GeoJSONを直接返却
-- 大きいデータ（≥1MB）: `resourceUri` を返却（`resource://` プロトコル）
+MCP クライアントの設定ファイル (例: `claude_desktop_config.json` や Cursor の MCP 設定) に以下を追加します。
 
 ```json
 {
-  "geojson": {"type": "FeatureCollection", "features": [...]},
-  "meta": {"cacheHit": false, "sizeBytes": 524288, "isResource": false}
+  "mcpServers": {
+    "mlit": {
+      "command": "/path/to/real-estate-heatmap/.venv/bin/python",
+      "args": ["-m", "mlit_mcp"],
+      "env": {
+        "MLIT_API_KEY": "your_api_key_here"
+      }
+    }
+  }
 }
 ```
 
-#### 4. `mlit.fetch_land_price_points`
-地価公示ポイントデータを取得（XKT001 API）
+### 2. コマンドラインでの動作確認
 
-**パラメータ:**
-- `area` (string, required): エリアコード
-- `year` (integer, required): 対象年
-- `responseFormat` (string, optional): "geojson" または "pbf"（デフォルト: "geojson"）
-- `forceRefresh` (boolean, optional): キャッシュをバイパス
+サーバーは標準入出力 (stdio) を使用するため、手動で実行しても何も表示されずに待機状態になります。
+開発用デバッグには MCP Inspector 等を利用するか、ログファイルを確認してください。
 
-**レスポンス:**
-- GeoJSON形式: `geojson` フィールドにデータ
-- PBF形式: `pbfBase64` フィールドにBase64エンコードされたMVTデータ
+## 利用可能なツール
 
-#### 5. `mlit.fetch_urban_planning_zones`
-都市計画区域データを取得（XKT011 API）
+| ツール名 | 説明 |
+| --- | --- |
+| `mlit.list_municipalities` | 指定した都道府県の市区町村コード一覧を取得 |
+| `mlit.fetch_transactions` | 不動産取引価格情報の検索・取得 (期間・場所指定) |
+| `mlit.fetch_transaction_points` | 取引情報のポイントデータを GeoJSON で取得 |
+| `mlit.fetch_land_price_points` | 地価公示・地価調査ポイントの取得 |
+| `mlit.fetch_urban_planning_zones` | 都市計画区域・用途地域などの取得 |
 
-**パラメータ:**
-- `area` (string, required): エリアコード
-- タイル指定（z/x/y）または bbox のいずれか:
-  - `z` (integer): ズームレベル（0-18）
-  - `x` (integer): タイルX座標
-  - `y` (integer): タイルY座標
-  - `bbox` (string): "minLon,minLat,maxLon,maxLat" 形式
-- `responseFormat` (string, optional): "geojson" または "pbf"
-- `forceRefresh` (boolean, optional): キャッシュをバイパス
+## 開発者向け
 
-**注意:** z/x/y と bbox は同時に指定できません。
-
-#### 6. `mlit.fetch_school_districts`
-小学校区タイルデータを取得（XKT021 API）
-
-**パラメータ:**
-- `area` (string, required): エリアコード
-- `z` (integer, required): ズームレベル（0-18）
-- `x` (integer, required): タイルX座標
-- `y` (integer, required): タイルY座標
-- `crs` (string, optional): 座標参照系（例: "EPSG:4326"）
-- `forceRefresh` (boolean, optional): キャッシュをバイパス
-
-**レスポンス:**
-```json
-{
-  "mvtBase64": "GhsKBnNjaG9vbC4uLg==",
-  "meta": {"cacheHit": false, "crs": "EPSG:4326"}
-}
-```
-
-### キャッシュとパフォーマンス
-
-- **キャッシュTTL**: 6時間（JSONレスポンス）
-- **キャッシュサイズ**: 最大256エントリ（LRU）
-- **force_refresh**: 全ツールで `forceRefresh: true` を指定することでキャッシュをバイパス可能
-- **リトライ**: 429/5xxエラー時に指数バックオフで自動リトライ（最大4回）
-
-### 設定例ファイル
-
-プロジェクトルートの `.cursor/mcp-config.json.example` を参考にしてください。
-
-## テスト
-
-E2Eテストスイートを実行：
-
+### テスト実行
 ```bash
-python test_e2e.py
+pytest
 ```
 
-テスト項目：
-- CLIヘルプの表示
-- 単一都道府県の実行
-- 複数都道府県の実行
-- 無効な引数のエラーハンドリング
-- 出力ディレクトリ構造の確認
+### 実装計画
+詳細は [prompt/PLAN.md](prompt/PLAN.md) を参照してください。
 
-## トラブルシューティング
-
-### APIキーが設定されていない
-
-```
-ValueError: APIキーが設定されていません。環境変数 'HUDOUSAN_API_KEY' にAPIキーを設定してください。
-```
-
-**解決方法**: `.env` ファイルに `HUDOUSAN_API_KEY` を設定してください。
-
-### タイムアウトエラー
-
-API の応答が遅い場合、タイムアウトが発生する可能性があります。現在は実装されていませんが、PR2でタイムアウト設定を追加予定です。
-
-### データが取得できない
-
-特定の年度・都道府県でデータが取得できない場合、以下のメッセージが表示されます：
-
-```
-No valid data available for {都道府県名}.
-```
-
-この場合、グラフは生成されませんが、処理は継続されます。
-
-### フォントの警告
-
-macOS以外の環境では、日本語フォントが見つからない場合に警告が表示されることがあります。フォントは自動的にフォールバックされます。
-
-## 開発計画
-
-現在は **PR1（クリーニングとCLI化）** が完了しています。
-
-今後の予定：
-- **PR2**: ネットワーク堅牢化（Session/Timeout/Retry）
-- **PR3**: データ整形と永続化（CSV/Parquet）
-- **PR4**: パフォーマンス向上（並列化・簡易キャッシュ）
-- **PR5**: 可視化の整備（PNG出力の品質・一貫性）
-- **PR6**: GeoJSONメトリクス生成（マップ用データ）
-- **PR7-8**: Webマップ基盤と傾きの発散色コロプレス
-- **PR9**: ドキュメント・パッケージング
-- **PR10**: 解析品質向上（テスト追加）
-
-詳細は `prompt/plan.md` を参照してください。
-
-## データ利用規約
-
-- **国交省API**: [利用規約](https://www.reinfolib.mlit.go.jp/ex-api/external/XIT001)に従って使用してください
-- データの二次配布・商用利用については、各APIの利用規約を確認してください
-
-## ライセンス
-
-このプロジェクトのライセンスは未定です。
-
-## 貢献
-
-プルリクエストやイシューの報告を歓迎します。
-
-## 作者
-
-- GitHub: [@takurot](https://github.com/takurot)
-
+---
+**Note**: 本リポジトリは以前の「不動産価格成長率分析ツール」から MCP サーバーへ移行しました。旧分析スクリプトのロジックは今後 MCP クライアントとして再実装される予定です。
