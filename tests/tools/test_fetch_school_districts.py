@@ -6,7 +6,10 @@ from unittest.mock import AsyncMock
 from pydantic import ValidationError
 
 from mlit_mcp.http_client import FetchResult, MLITHttpClient
-from mlit_mcp.tools.fetch_school_districts import FetchSchoolDistrictsInput, FetchSchoolDistrictsTool
+from mlit_mcp.tools.fetch_school_districts import (
+    FetchSchoolDistrictsInput,
+    FetchSchoolDistrictsTool,
+)
 from mlit_mcp.tools.gis_helpers import decode_base64_to_mvt
 
 
@@ -47,7 +50,7 @@ class TestFetchSchoolDistrictsInput:
             administrativeAreaCode="13108",
         )
         assert payload.administrative_area_code == "13108"
-        
+
     def test_zoom_level_validation(self):
         """Test zoom level must be 11-15."""
         with pytest.raises(ValidationError):
@@ -83,7 +86,7 @@ class TestFetchSchoolDistrictsTool:
 
         assert result.mvt_base64 is not None
         assert result.meta.cache_hit is False
-        
+
         # Verify we can decode it back
         decoded = decode_base64_to_mvt(result.mvt_base64)
         assert decoded == mvt_content
@@ -110,7 +113,7 @@ class TestFetchSchoolDistrictsTool:
         result = await tool.run(payload)
 
         assert result.meta.format == "geojson"  # default format
-        
+
         # Verify admin code was passed to API
         call_args = mock_http_client.fetch.call_args
         assert call_args.kwargs["params"]["administrativeAreaCode"] == "13108"

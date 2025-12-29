@@ -6,7 +6,12 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import httpx
-from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from .cache import BinaryFileCache, InMemoryTTLCache
 from .settings import get_settings
@@ -92,7 +97,9 @@ class MLITHttpClient:
             return self._json_cache.get(cache_key)
         return self._file_cache.get(cache_key)
 
-    async def _send_with_retry(self, endpoint: str, params: Mapping[str, Any] | None) -> httpx.Response:
+    async def _send_with_retry(
+        self, endpoint: str, params: Mapping[str, Any] | None
+    ) -> httpx.Response:
         prepared_params = dict(params or {})
 
         async for attempt in AsyncRetrying(
@@ -111,8 +118,14 @@ class MLITHttpClient:
         raise RuntimeError("Retry loop exited unexpectedly")
 
     @staticmethod
-    def _build_cache_key(endpoint: str, params: Mapping[str, Any] | None, response_format: str) -> str:
-        payload = {"endpoint": endpoint, "params": params or {}, "format": response_format}
+    def _build_cache_key(
+        endpoint: str, params: Mapping[str, Any] | None, response_format: str
+    ) -> str:
+        payload = {
+            "endpoint": endpoint,
+            "params": params or {},
+            "format": response_format,
+        }
         return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
     @staticmethod
@@ -126,5 +139,3 @@ class MLITHttpClient:
                 return ".pbf"
             case _:
                 return ".bin"
-
-

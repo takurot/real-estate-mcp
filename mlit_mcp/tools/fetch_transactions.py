@@ -13,8 +13,12 @@ logger = logging.getLogger(__name__)
 class FetchTransactionsInput(BaseModel):
     """Input schema for the fetch_transactions tool."""
 
-    from_year: int = Field(alias="fromYear", description="Starting year (e.g. 2015)", ge=2005, le=2030)
-    to_year: int = Field(alias="toYear", description="Ending year (e.g. 2024)", ge=2005, le=2030)
+    from_year: int = Field(
+        alias="fromYear", description="Starting year (e.g. 2015)", ge=2005, le=2030
+    )
+    to_year: int = Field(
+        alias="toYear", description="Ending year (e.g. 2024)", ge=2005, le=2030
+    )
     area: str = Field(description="Area code (prefecture or city code)")
     classification: str | None = Field(
         default=None,
@@ -88,7 +92,7 @@ class FetchTransactionsTool:
         # XIT001 API uses 'year' parameter, not 'from'/'to'
         # If year range is specified, we need to fetch each year separately
         all_data = []
-        
+
         for year in range(payload.from_year, payload.to_year + 1):
             params = {
                 "year": year,
@@ -106,7 +110,7 @@ class FetchTransactionsTool:
                 response_format="json",
                 force_refresh=payload.force_refresh,
             )
-            
+
             year_data = fetch_result.data
             # Extract data from response if it's wrapped
             if isinstance(year_data, dict):
@@ -120,7 +124,7 @@ class FetchTransactionsTool:
                     all_data.append(year_data)
             elif isinstance(year_data, list):
                 all_data.extend(year_data)
-        
+
         # Convert to table format if requested
         data = all_data
         if payload.format == "table":
@@ -155,7 +159,7 @@ class FetchTransactionsTool:
             for key in ("data", "items", "records", "transactions"):
                 if key in data and isinstance(data[key], list):
                     return data[key]
-            
+
             # If it's a single record, wrap it in a list
             return [data]
 

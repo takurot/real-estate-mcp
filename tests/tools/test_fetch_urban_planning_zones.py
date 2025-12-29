@@ -33,7 +33,12 @@ def sample_geojson():
         "features": [
             {
                 "type": "Feature",
-                "geometry": {"type": "Polygon", "coordinates": [[[139.7, 35.7], [139.8, 35.7], [139.8, 35.8], [139.7, 35.7]]]},
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [[139.7, 35.7], [139.8, 35.7], [139.8, 35.8], [139.7, 35.7]]
+                    ],
+                },
                 "properties": {"zone": "residential"},
             }
         ],
@@ -116,7 +121,7 @@ class TestFetchUrbanPlanningZonesTool:
 
         assert result.geojson is None
         assert result.pbf_base64 is not None
-        
+
         # Verify decoding
         decoded = decode_base64_to_mvt(result.pbf_base64)
         assert decoded == pbf_content

@@ -55,7 +55,7 @@ class TestFetchTransactionsInput:
         # Too early
         with pytest.raises(ValidationError):
             FetchTransactionsInput(fromYear=2000, toYear=2020, area="13")
-        
+
         # Too late
         with pytest.raises(ValidationError):
             FetchTransactionsInput(fromYear=2020, toYear=2035, area="13")
@@ -63,12 +63,16 @@ class TestFetchTransactionsInput:
     def test_format_validation(self):
         """Test format field accepts only json or table."""
         # Valid formats
-        payload1 = FetchTransactionsInput(fromYear=2020, toYear=2024, area="13", format="json")
+        payload1 = FetchTransactionsInput(
+            fromYear=2020, toYear=2024, area="13", format="json"
+        )
         assert payload1.format == "json"
-        
-        payload2 = FetchTransactionsInput(fromYear=2020, toYear=2024, area="13", format="table")
+
+        payload2 = FetchTransactionsInput(
+            fromYear=2020, toYear=2024, area="13", format="table"
+        )
         assert payload2.format == "table"
-        
+
         # Invalid format
         with pytest.raises(ValidationError):
             FetchTransactionsInput(fromYear=2020, toYear=2024, area="13", format="csv")
@@ -97,7 +101,7 @@ class TestFetchTransactionsTool:
         assert len(result.data) == 2
         assert result.meta.cache_hit is False
         assert result.meta.format == "json"
-        
+
         # Verify HTTP client was called twice (once per year)
         assert mock_http_client.fetch.call_count == 2
 

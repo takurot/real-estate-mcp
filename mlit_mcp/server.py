@@ -62,7 +62,9 @@ def create_app() -> FastAPI:
         tools = getattr(app.state, "tools", {})
         tool = tools.get(tool_name)
         if not tool:
-            raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' is not registered.")
+            raise HTTPException(
+                status_code=404, detail=f"Tool '{tool_name}' is not registered."
+            )
 
         arguments = payload.get("arguments") or {}
         try:
@@ -83,17 +85,19 @@ def create_app() -> FastAPI:
 
         file_cache = http_client._file_cache
         cache_dir = file_cache._cache_dir
-        
+
         resources = []
         if cache_dir.exists():
             for file_path in cache_dir.glob("*.geojson"):
-                resources.append({
-                    "uri": f"resource://mlit/transaction_points/{file_path.name}",
-                    "name": file_path.stem,
-                    "mimeType": "application/geo+json",
-                    "description": f"Cached GeoJSON transaction points data",
-                })
-        
+                resources.append(
+                    {
+                        "uri": f"resource://mlit/transaction_points/{file_path.name}",
+                        "name": file_path.stem,
+                        "mimeType": "application/geo+json",
+                        "description": f"Cached GeoJSON transaction points data",
+                    }
+                )
+
         return {"resources": resources}
 
     @app.post("/read_resource", tags=["mcp"])
@@ -102,38 +106,47 @@ def create_app() -> FastAPI:
         resource_uri = payload.get("uri") or payload.get("resourceId")
         if not resource_uri:
             raise HTTPException(status_code=400, detail="uri or resourceId is required")
-        
+
         # Parse resource URI: resource://mlit/transaction_points/{filename}
         if not resource_uri.startswith("resource://mlit/transaction_points/"):
-            raise HTTPException(status_code=404, detail=f"Resource '{resource_uri}' not found")
-        
+            raise HTTPException(
+                status_code=404, detail=f"Resource '{resource_uri}' not found"
+            )
+
         filename = resource_uri.split("/")[-1]
-        
+
         http_client = getattr(app.state, "http_client", None)
         if not http_client or not hasattr(http_client, "_file_cache"):
             raise HTTPException(status_code=500, detail="File cache not available")
-        
+
         file_cache = http_client._file_cache
         cache_dir = file_cache._cache_dir
         file_path = cache_dir / filename
-        
+
         if not file_path.exists():
-            raise HTTPException(status_code=404, detail=f"Resource file '{filename}' not found")
-        
+            raise HTTPException(
+                status_code=404, detail=f"Resource file '{filename}' not found"
+            )
+
         try:
             content = file_path.read_text(encoding="utf-8")
-            return JSONResponse(content={
-                "contents": [{
-                    "uri": resource_uri,
-                    "mimeType": "application/geo+json",
-                    "text": content,
-                }]
-            })
+            return JSONResponse(
+                content={
+                    "contents": [
+                        {
+                            "uri": resource_uri,
+                            "mimeType": "application/geo+json",
+                            "text": content,
+                        }
+                    ]
+                }
+            )
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Failed to read resource: {exc}") from exc
+            raise HTTPException(
+                status_code=500, detail=f"Failed to read resource: {exc}"
+            ) from exc
 
     return app
 
 
 app = create_app()
-

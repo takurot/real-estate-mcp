@@ -5,7 +5,10 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 from mlit_mcp.http_client import FetchResult, MLITHttpClient
-from mlit_mcp.tools.fetch_land_price_points import FetchLandPricePointsInput, FetchLandPricePointsTool
+from mlit_mcp.tools.fetch_land_price_points import (
+    FetchLandPricePointsInput,
+    FetchLandPricePointsTool,
+)
 from mlit_mcp.tools.gis_helpers import decode_base64_to_mvt
 
 
@@ -65,7 +68,7 @@ class TestFetchLandPricePointsInput:
             responseFormat="pbf",
         )
         assert payload.response_format == "pbf"
-        
+
     def test_zoom_level_validation(self):
         """Test zoom level must be 13-15."""
         with pytest.raises(Exception):  # Pydantic validation error
@@ -128,7 +131,7 @@ class TestFetchLandPricePointsTool:
         assert result.geojson is None
         assert result.pbf_base64 is not None
         assert result.meta.format == "pbf"
-        
+
         # Verify we can decode it back
         decoded = decode_base64_to_mvt(result.pbf_base64)
         assert decoded == pbf_content

@@ -77,7 +77,9 @@ class FetchUrbanPlanningZonesTool:
         result = await self.run(payload)
         return result.model_dump(by_alias=True, exclude_none=True)
 
-    async def run(self, payload: FetchUrbanPlanningZonesInput) -> FetchUrbanPlanningZonesResponse:
+    async def run(
+        self, payload: FetchUrbanPlanningZonesInput
+    ) -> FetchUrbanPlanningZonesResponse:
         params = {
             "response_format": payload.response_format,
             "z": payload.z,
@@ -113,8 +115,10 @@ class FetchUrbanPlanningZonesTool:
             if fetch_result.file_path:
                 pbf_content = fetch_result.file_path.read_bytes()
             else:
-                pbf_content = fetch_result.data if isinstance(fetch_result.data, bytes) else b""
-            
+                pbf_content = (
+                    fetch_result.data if isinstance(fetch_result.data, bytes) else b""
+                )
+
             pbf_base64 = encode_mvt_to_base64(pbf_content)
             return FetchUrbanPlanningZonesResponse(
                 pbf_base64=pbf_base64,

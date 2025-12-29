@@ -46,7 +46,9 @@ class ResponseMeta(BaseModel):
 
 
 class FetchSchoolDistrictsResponse(BaseModel):
-    mvt_base64: str = Field(alias="mvtBase64", description="Base64-encoded MVT tile data")
+    mvt_base64: str = Field(
+        alias="mvtBase64", description="Base64-encoded MVT tile data"
+    )
     meta: ResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)
@@ -80,14 +82,16 @@ class FetchSchoolDistrictsTool:
         result = await self.run(payload)
         return result.model_dump(by_alias=True, exclude_none=True)
 
-    async def run(self, payload: FetchSchoolDistrictsInput) -> FetchSchoolDistrictsResponse:
+    async def run(
+        self, payload: FetchSchoolDistrictsInput
+    ) -> FetchSchoolDistrictsResponse:
         params = {
             "response_format": payload.response_format,
             "z": payload.z,
             "x": payload.x,
             "y": payload.y,
         }
-        
+
         if payload.administrative_area_code:
             params["administrativeAreaCode"] = payload.administrative_area_code
 
@@ -102,7 +106,9 @@ class FetchSchoolDistrictsTool:
         if fetch_result.file_path:
             mvt_content = fetch_result.file_path.read_bytes()
         else:
-            mvt_content = fetch_result.data if isinstance(fetch_result.data, bytes) else b""
+            mvt_content = (
+                fetch_result.data if isinstance(fetch_result.data, bytes) else b""
+            )
 
         mvt_base64 = encode_mvt_to_base64(mvt_content)
 
