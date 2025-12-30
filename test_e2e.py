@@ -168,6 +168,11 @@ def test_invalid_args():
     """無効な引数のテスト"""
     print("Test 4: 無効な引数のエラーハンドリング")
 
+    api_key = os.getenv("HUDOUSAN_API_KEY")
+    if not api_key:
+        print("⚠ APIキーが設定されていません。スキップします。")
+        return
+
     # 存在しない都道府県コード
     result = subprocess.run(
         [
