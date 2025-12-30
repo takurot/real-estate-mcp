@@ -36,7 +36,12 @@ def sample_geojson():
                 "geometry": {
                     "type": "Polygon",
                     "coordinates": [
-                        [[139.7, 35.7], [139.8, 35.7], [139.8, 35.8], [139.7, 35.7]]
+                        [
+                            [139.7, 35.7],
+                            [139.8, 35.7],
+                            [139.8, 35.8],
+                            [139.7, 35.7],
+                        ]
                     ],
                 },
                 "properties": {"zone": "residential"},
@@ -73,7 +78,9 @@ class TestFetchUrbanPlanningZonesTool:
     """Test FetchUrbanPlanningZonesTool functionality."""
 
     @pytest.mark.anyio
-    async def test_tiles_request_geojson(self, tool, mock_http_client, sample_geojson):
+    async def test_tiles_request_geojson(
+        self, tool, mock_http_client, sample_geojson
+    ):
         """Test tile request with GeoJSON format."""
         mock_http_client.fetch.return_value = FetchResult(
             data=sample_geojson,
@@ -125,3 +132,35 @@ class TestFetchUrbanPlanningZonesTool:
         # Verify decoding
         decoded = decode_base64_to_mvt(result.pbf_base64)
         assert decoded == pbf_content
+
+    @pytest.mark.anyio
+    async def test_large_response_resource_uri(
+        self, tool, mock_http_client, tmp_path
+    ):
+        """Test that large responses return a resource URI."""
+        # Create a large file (> 1MB)
+        large_content = b"x" * (1024 * 1024 + 1)
+        large_file = tmp_path / "large.geojson"
+        large_file.write_bytes(large_content)
+
+        mock_http_client.fetch.return_value = FetchResult(
+            data=None,
+            file_path=large_file,
+            from_cache=False,
+        )
+
+        payload = FetchUrbanPlanningZonesInput(
+            z=11,
+            x=1819,
+            y=806,
+            responseFormat="geojson",
+        )
+        result = await tool.run(payload)
+
+        assert result.geojson is None
+        assert result.resource_uri is not None
+        assert result.resource_uri.startswith(
+            "resource://mlit/urban_planning_zones/"
+        )
+        assert result.meta.is_resource is True
+        assert result.meta.size_bytes > 1024 * 1024

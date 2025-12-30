@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
+
 from unittest.mock import AsyncMock
 
 from mlit_mcp.http_client import FetchResult, MLITHttpClient
@@ -84,7 +84,9 @@ class TestFetchLandPricePointsTool:
     """Test FetchLandPricePointsTool functionality."""
 
     @pytest.mark.anyio
-    async def test_geojson_format(self, tool, mock_http_client, sample_geojson):
+    async def test_geojson_format(
+        self, tool, mock_http_client, sample_geojson
+    ):
         """Test GeoJSON format response."""
         mock_http_client.fetch.return_value = FetchResult(
             data=sample_geojson,
@@ -173,3 +175,36 @@ class TestFetchLandPricePointsTool:
 
         call_args = mock_http_client.fetch.call_args
         assert call_args.kwargs["force_refresh"] is True
+
+    @pytest.mark.anyio
+    async def test_large_response_resource_uri(
+        self, tool, mock_http_client, tmp_path
+    ):
+        """Test that large responses return a resource URI."""
+        # Create a large file (> 1MB)
+        large_content = b"x" * (1024 * 1024 + 1)
+        large_file = tmp_path / "large.geojson"
+        large_file.write_bytes(large_content)
+
+        mock_http_client.fetch.return_value = FetchResult(
+            data=None,
+            file_path=large_file,
+            from_cache=False,
+        )
+
+        payload = FetchLandPricePointsInput(
+            z=13,
+            x=7312,
+            y=3008,
+            year=2020,
+            responseFormat="geojson",
+        )
+        result = await tool.run(payload)
+
+        assert result.geojson is None
+        assert result.resource_uri is not None
+        assert result.resource_uri.startswith(
+            "resource://mlit/land_price_points/"
+        )
+        assert result.meta.is_resource is True
+        assert result.meta.size_bytes > 1024 * 1024
