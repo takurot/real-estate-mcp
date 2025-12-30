@@ -29,7 +29,7 @@
 | **PR5** | `fetch_transaction_points` ツール | 取引ポイント (XPT001) + resource 化 (完了) | PR2 |
 | **PR6** | `fetch_land_price_points` & `urban_planning` | 地価公示 (XKT001) / 都市計画 (XKT011) (完了) | PR5 |
 | **PR7** | `fetch_school_districts` & MVT | 学区 (XKT004) + MVT base64 (完了) | PR5 |
-| **PR8** | ロギング・監視・キャッシュ運用 | 構造化ログ、Stats、Force Refresh | PR2 |
+| **PR8** | ロギング・監視・キャッシュ運用 | 構造化ログ、Stats、Force Refresh (完了) | PR2 |
 | **PR9** | 統合テストとドキュメント | E2E テスト, 負荷テスト, README 完成 | PR3-8 |
 
 ### 詳細仕様
@@ -50,6 +50,11 @@
 #### PR5, 6, 7: Geo データの Resource 化
 - 1MB を超える GeoJSON やバイナリ (MVT) は MCP の `resource://` URI を返却し、メモリ圧迫を回避。
 - `fetch_transaction_points` (PR5), `fetch_land_price_points` (PR6), `fetch_school_districts` (PR7) で適用。
+
+#### PR8: ロギング・監視・キャッシュ運用
+- **構造化ログ**: `logging` モジュールによるリクエスト・エラー・キャッシュ状態の記録 (JSON向けの `extra` フィールド付与)。
+- **Stats**: キャッシュヒット率、APIエラー数、リクエスト総数を `get_server_stats` ツールで公開。
+- **Force Refresh**: 全ツールで `force_refresh=True` によるキャッシュバイパスを検証済み。
 
 ---
 
