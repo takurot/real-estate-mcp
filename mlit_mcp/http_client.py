@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
+from collections import Counter
+import logging
 
 import httpx
 from tenacity import (
@@ -18,6 +20,8 @@ from .settings import get_settings
 
 
 RETRYABLE_STATUS_CODES = {408, 409, 425, 429} | set(range(500, 600))
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -59,6 +63,16 @@ class MLITHttpClient:
             headers={"Ocp-Apim-Subscription-Key": self._api_key},
             transport=transport,
         )
+        self._stats: Counter[str] = Counter()
+
+    def get_stats(self) -> dict[str, int]:
+        """Return a dictionary of collected statistics."""
+        return {
+            "total_requests": self._stats["total_requests"],
+            "cache_hits": self._stats["cache_hits"],
+            "cache_misses": self._stats["cache_misses"],
+            "api_errors": self._stats["api_errors"],
+        }
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -74,14 +88,28 @@ class MLITHttpClient:
         cache_key = self._build_cache_key(endpoint, params, response_format)
         normalized_format = response_format.lower()
 
+        self._stats["total_requests"] += 1
+        logger.info(
+            f"Fetching {endpoint}", extra={"params": params, "format": response_format}
+        )
+
         if not force_refresh:
             cached = self._get_cached(normalized_format, cache_key)
             if cached is not None:
+                self._stats["cache_hits"] += 1
+                logger.info(f"Cache hit for {endpoint}")
                 if normalized_format == "json":
                     return FetchResult(data=cached, from_cache=True)
                 return FetchResult(file_path=cached, from_cache=True)
+            logger.info(f"Cache miss for {endpoint}")
 
-        response = await self._send_with_retry(endpoint, params)
+        self._stats["cache_misses"] += 1
+        try:
+            response = await self._send_with_retry(endpoint, params)
+        except Exception as e:
+            self._stats["api_errors"] += 1
+            logger.error(f"Request failed for {endpoint}: {e}")
+            raise
 
         if normalized_format == "json":
             data = response.json()
@@ -89,7 +117,9 @@ class MLITHttpClient:
             return FetchResult(data=data, from_cache=False)
 
         suffix = self._suffix_for_format(normalized_format)
-        path = self._file_cache.set(cache_key, response.content, suffix=suffix)
+        path = self._file_cache.set(
+            cache_key, response.content, suffix=suffix
+        )
         return FetchResult(file_path=path, from_cache=False)
 
     def _get_cached(self, normalized_format: str, cache_key: str) -> Any | None:

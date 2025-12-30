@@ -10,7 +10,6 @@ from fastmcp import FastMCP
 from .cache import BinaryFileCache, InMemoryTTLCache
 from .http_client import MLITHttpClient
 from .settings import get_settings
-from .tools import build_tools
 
 # Load .env file from project root
 _env_path = Path(__file__).parent.parent / ".env"
@@ -36,7 +35,9 @@ def _get_http_client() -> Any:
         settings = get_settings()
         cache_root = Path(tempfile.gettempdir()) / "mlit_mcp_cache"
         json_cache = InMemoryTTLCache(maxsize=256, ttl=6 * 60 * 60)
-        file_cache = BinaryFileCache(cache_root / "files", ttl_seconds=6 * 60 * 60)
+        file_cache = BinaryFileCache(
+            cache_root / "files", ttl_seconds=6 * 60 * 60
+        )
         _http_client = MLITHttpClient(
             base_url=str(settings.base_url),
             json_cache=json_cache,
@@ -50,7 +51,8 @@ async def list_municipalities(
     prefecture_code: str, lang: str = "ja", force_refresh: bool = False
 ) -> dict:
     """
-    Return the list of municipalities within the specified prefecture using MLIT dataset XIT002.
+    Return the list of municipalities within the specified prefecture using
+    MLIT dataset XIT002.
 
     Args:
         prefecture_code: Two digit prefecture code, e.g. '13' for Tokyo
@@ -92,7 +94,10 @@ async def fetch_transactions(
         format: Response format ('json' or 'table'), defaults to 'json'
         force_refresh: If true, bypass cache and fetch fresh data
     """
-    from .tools.fetch_transactions import FetchTransactionsInput, FetchTransactionsTool
+    from .tools.fetch_transactions import (
+        FetchTransactionsInput,
+        FetchTransactionsTool,
+    )
 
     tool = FetchTransactionsTool(http_client=_get_http_client())
     input_data = FetchTransactionsInput(
@@ -122,7 +127,8 @@ async def fetch_transaction_points(
 ) -> dict:
     """
     Fetch real estate transaction points as GeoJSON from MLIT dataset XPT001.
-    Requires XYZ tile coordinates. Large responses (>1MB) are returned as resource URIs.
+    Requires XYZ tile coordinates. Large responses (>1MB) are returned as
+    resource URIs.
 
     Args:
         z: Zoom level (11-15)
@@ -131,8 +137,10 @@ async def fetch_transaction_points(
         from_quarter: Start quarter in YYYYN format (e.g., 20231 for Q1 2023)
         to_quarter: End quarter in YYYYN format (e.g., 20244 for Q4 2024)
         response_format: 'geojson' or 'pbf', defaults to 'geojson'
-        price_classification: Optional price classification (01=transaction, 02=contract)
-        land_type_code: Optional land type codes, comma-separated (e.g., '01,02,07')
+        price_classification: Optional price classification (01=transaction,
+                              02=contract)
+        land_type_code: Optional land type codes, comma-separated
+                        (e.g., '01,02,07')
         bbox: Optional bounding box filter with minLon, minLat, maxLon, maxLat
         force_refresh: If true, bypass cache and fetch fresh data
     """
@@ -270,6 +278,15 @@ async def fetch_school_districts(
     )
     result = await tool.run(input_data)
     return result.model_dump(by_alias=True, exclude_none=True)
+
+
+@mcp.tool()
+async def get_server_stats() -> dict:
+    """
+    Get internal server statistics including cache hits, misses, and request counts.
+    """
+    client = _get_http_client()
+    return client.get_stats()
 
 
 def main():
