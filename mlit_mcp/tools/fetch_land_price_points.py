@@ -132,10 +132,10 @@ class FetchLandPricePointsTool:
         )
 
         meta = ResponseMeta(
-            cache_hit=fetch_result.from_cache,
+            cacheHit=fetch_result.from_cache,
             format=payload.response_format,
-            size_bytes=size_bytes,
-            is_resource=is_large,
+            sizeBytes=size_bytes,
+            isResource=is_large,
         )
 
         if is_large and fetch_result.file_path:
@@ -143,11 +143,22 @@ class FetchLandPricePointsTool:
             fname = fetch_result.file_path.name
             resource_uri = f"resource://mlit/land_price_points/{fname}"
             return FetchLandPricePointsResponse(
-                resource_uri=resource_uri,
+                resourceUri=resource_uri,
                 meta=meta,
             )
 
+        # Load data if not large and data is missing (e.g., cached as file)
+        geojson_data = fetch_result.data
+        if not geojson_data and fetch_result.file_path and not is_large:
+            try:
+                content = fetch_result.file_path.read_bytes()
+                geojson_data = json.loads(content)
+            except Exception as e:
+                logger.error(f"Failed to read/parse file {fetch_result.file_path}: {e}")
+                # Fallback to None or raise? None is safer here.
+
         if payload.response_format == "pbf":
+
             # Read PBF file and encode to base64
             if fetch_result.file_path:
                 pbf_content = fetch_result.file_path.read_bytes()
@@ -159,13 +170,13 @@ class FetchLandPricePointsTool:
 
             pbf_base64 = encode_mvt_to_base64(pbf_content)
             return FetchLandPricePointsResponse(
-                pbf_base64=pbf_base64,
+                pbfBase64=pbf_base64,
                 meta=meta,
             )
         else:
             # GeoJSON format
             return FetchLandPricePointsResponse(
-                geojson=fetch_result.data,
+                geojson=geojson_data,
                 meta=meta,
             )
 

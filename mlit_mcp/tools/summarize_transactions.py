@@ -152,7 +152,7 @@ class SummarizeTransactionsTool:
 
         for year in range(payload.from_year, payload.to_year + 1):
             params = params_base.copy()
-            params["year"] = year
+            params["year"] = str(year)
 
             fetch_result = await self._http_client.fetch(
                 "XIT001",
@@ -260,22 +260,22 @@ class SummarizeTransactionsTool:
             },
         )
 
-        meta = ResponseMeta(cache_hit=False)
+        meta = ResponseMeta(cacheHit=False)
         return SummarizeTransactionsResponse(
-            record_count=record_count,
-            average_price=average_price,
-            median_price=median_price,
-            min_price=min_price,
-            max_price=max_price,
-            std_dev=std_dev_val,
+            recordCount=record_count,
+            averagePrice=average_price,
+            medianPrice=median_price,
+            minPrice=min_price,
+            maxPrice=max_price,
+            stdDev=std_dev_val,
             variance=variance_val,
-            percentile_25=percentile_25,
-            percentile_75=percentile_75,
-            avg_price_per_sqm=avg_price_per_sqm,
-            coefficient_of_variation=cv,
-            price_by_year=price_by_year,
-            count_by_year=count_by_year,
-            type_distribution=dict(type_counts),
+            percentile25=percentile_25,
+            percentile75=percentile_75,
+            avgPricePerSqm=avg_price_per_sqm,
+            coefficientOfVariation=cv,
+            priceByYear=price_by_year,
+            countByYear=count_by_year,
+            typeDistribution=dict(type_counts),
             meta=meta,
         )
 

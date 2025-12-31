@@ -15,7 +15,7 @@ from .fetch_school_districts import FetchSchoolDistrictsTool
 def build_tools(http_client: MLITHttpClient) -> Dict[str, Any]:
     """Instantiate and return available tool instances keyed by name."""
 
-    tools = [
+    tools: list[Any] = [
         ListMunicipalitiesTool(http_client=http_client),
         FetchTransactionsTool(http_client=http_client),
         FetchTransactionPointsTool(http_client=http_client),

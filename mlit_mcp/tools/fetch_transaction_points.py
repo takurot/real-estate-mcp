@@ -185,6 +185,13 @@ class FetchTransactionPointsTool:
 
         # Apply bbox filter if provided (only for geojson format)
         geojson_data = fetch_result.data
+        if not geojson_data and fetch_result.file_path and not is_large:
+            try:
+                content = fetch_result.file_path.read_bytes()
+                geojson_data = json.loads(content)
+            except Exception as e:
+                logger.error(f"Failed to read/parse file {fetch_result.file_path}: {e}")
+
         if payload.bbox and geojson_data and payload.response_format == "geojson":
             geojson_data = self._filter_by_bbox(geojson_data, payload.bbox)
 
@@ -203,9 +210,9 @@ class FetchTransactionPointsTool:
         )
 
         meta = ResponseMeta(
-            cache_hit=fetch_result.from_cache,
-            size_bytes=size_bytes,
-            is_resource=is_large,
+            cacheHit=fetch_result.from_cache,
+            sizeBytes=size_bytes,
+            isResource=is_large,
         )
 
         if is_large and fetch_result.file_path:
@@ -214,7 +221,7 @@ class FetchTransactionPointsTool:
                 f"resource://mlit/transaction_points/{fetch_result.file_path.name}"
             )
             return FetchTransactionPointsResponse(
-                resource_uri=resource_uri,
+                resourceUri=resource_uri,
                 meta=meta,
             )
         else:
