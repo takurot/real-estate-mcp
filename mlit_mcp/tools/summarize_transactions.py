@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections import defaultdict
-from statistics import median
+from statistics import median, stdev, variance, quantiles
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -79,7 +79,26 @@ class SummarizeTransactionsResponse(BaseModel):
     median_price: int | None = Field(default=None, alias="medianPrice")
     min_price: int | None = Field(default=None, alias="minPrice")
     max_price: int | None = Field(default=None, alias="maxPrice")
+    std_dev: int | None = Field(
+        default=None, alias="stdDev", description="Standard deviation"
+    )
+    variance: int | None = Field(default=None, description="Variance")
+    percentile_25: int | None = Field(
+        default=None, alias="percentile25", description="25th percentile"
+    )
+    percentile_75: int | None = Field(
+        default=None, alias="percentile75", description="75th percentile"
+    )
+    avg_price_per_sqm: int | None = Field(
+        default=None,
+        alias="avgPricePerSqm",
+        description="Average price per square meter",
+    )
+    coefficient_of_variation: float | None = Field(
+        default=None, alias="coefficientOfVariation", description="Std dev / mean"
+    )
     price_by_year: dict[str, int] = Field(default_factory=dict, alias="priceByYear")
+    count_by_year: dict[str, int] = Field(default_factory=dict, alias="countByYear")
     type_distribution: dict[str, int] = Field(
         default_factory=dict, alias="typeDistribution"
     )
@@ -151,8 +170,10 @@ class SummarizeTransactionsTool:
 
         # Aggregate statistics
         prices = []
+        areas = []  # For price per sqm
         type_counts: dict[str, int] = defaultdict(int)
         year_prices: dict[str, list[int]] = defaultdict(list)
+        year_counts: dict[str, int] = defaultdict(int)
 
         for record in all_data:
             # Extract price
@@ -166,7 +187,19 @@ class SummarizeTransactionsTool:
                     period = record.get("Period", "")
                     year_match = re.match(r"(\d{4})年", period)
                     if year_match:
-                        year_prices[year_match.group(1)].append(price)
+                        year_key = year_match.group(1)
+                        year_prices[year_key].append(price)
+                        year_counts[year_key] += 1
+
+                    # Extract area for price per sqm
+                    area_str = record.get("Area")
+                    if area_str:
+                        try:
+                            area_val = float(area_str)
+                            if area_val > 0:
+                                areas.append((price, area_val))
+                        except (ValueError, TypeError):
+                            pass
                 except (ValueError, TypeError):
                     pass
 
@@ -182,10 +215,40 @@ class SummarizeTransactionsTool:
         min_price = min(prices) if prices else None
         max_price = max(prices) if prices else None
 
+        # Standard deviation and variance (requires at least 2 data points)
+        std_dev_val = int(stdev(prices)) if len(prices) >= 2 else None
+        variance_val = int(variance(prices)) if len(prices) >= 2 else None
+
+        # Percentiles (requires at least 4 data points for quartiles)
+        if len(prices) >= 4:
+            q = quantiles(prices, n=4)  # Returns [Q1, Q2, Q3]
+            percentile_25 = int(q[0])
+            percentile_75 = int(q[2])
+        else:
+            percentile_25 = None
+            percentile_75 = None
+
+        # Coefficient of variation
+        cv = (
+            round(std_dev_val / average_price, 3)
+            if std_dev_val and average_price
+            else None
+        )
+
+        # Average price per sqm
+        if areas:
+            total_price_per_sqm = sum(p / a for p, a in areas)
+            avg_price_per_sqm = int(total_price_per_sqm / len(areas))
+        else:
+            avg_price_per_sqm = None
+
         # Average price by year
         price_by_year = {
             year: int(sum(p) / len(p)) for year, p in year_prices.items() if p
         }
+
+        # Count by year
+        count_by_year = dict(year_counts)
 
         logger.info(
             "summarize_transactions",
@@ -204,7 +267,14 @@ class SummarizeTransactionsTool:
             median_price=median_price,
             min_price=min_price,
             max_price=max_price,
+            std_dev=std_dev_val,
+            variance=variance_val,
+            percentile_25=percentile_25,
+            percentile_75=percentile_75,
+            avg_price_per_sqm=avg_price_per_sqm,
+            coefficient_of_variation=cv,
             price_by_year=price_by_year,
+            count_by_year=count_by_year,
             type_distribution=dict(type_counts),
             meta=meta,
         )
