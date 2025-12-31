@@ -185,6 +185,13 @@ class FetchTransactionPointsTool:
 
         # Apply bbox filter if provided (only for geojson format)
         geojson_data = fetch_result.data
+        if not geojson_data and fetch_result.file_path and not is_large:
+            try:
+                content = fetch_result.file_path.read_bytes()
+                geojson_data = json.loads(content)
+            except Exception as e:
+                logger.error(f"Failed to read/parse file {fetch_result.file_path}: {e}")
+
         if payload.bbox and geojson_data and payload.response_format == "geojson":
             geojson_data = self._filter_by_bbox(geojson_data, payload.bbox)
 

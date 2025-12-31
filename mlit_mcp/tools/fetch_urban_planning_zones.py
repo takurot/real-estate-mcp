@@ -146,6 +146,17 @@ class FetchUrbanPlanningZonesTool:
                 meta=meta,
             )
 
+        # Load data if not large and data is missing (e.g., cached as file)
+        geojson_data = fetch_result.data
+        if not geojson_data and fetch_result.file_path and not is_large:
+            try:
+                content = fetch_result.file_path.read_bytes()
+                geojson_data = json.loads(content)
+            except Exception as e:
+                logger.error(f"Failed to read/parse file {fetch_result.file_path}: {e}")
+                # Fallback to None or raise? None is safer here.
+
+
         if payload.response_format == "pbf":
             # Read PBF file and encode to base64
             if fetch_result.file_path:
@@ -164,7 +175,7 @@ class FetchUrbanPlanningZonesTool:
         else:
             # GeoJSON format
             return FetchUrbanPlanningZonesResponse(
-                geojson=fetch_result.data,
+                geojson=geojson_data,
                 meta=meta,
             )
 
