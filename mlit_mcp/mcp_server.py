@@ -324,6 +324,52 @@ async def get_server_stats() -> dict:
     return client.get_stats()
 
 
+@mcp.tool()
+async def fetch_hazard_risks(
+    latitude: float,
+    longitude: float,
+    risk_types: list[str] | None = None,
+    force_refresh: bool = False,
+) -> dict:
+    """
+    Fetch hazard risk information (Flood, Landslide) for a specific latitude/longitude.
+    Uses MLIT Real Estate Information Library APIs.
+
+    Args:
+        latitude: Latitude of the location (e.g. 35.6812)
+        longitude: Longitude of the location (e.g. 139.7671)
+        risk_types: List of risks to fetch ['flood', 'landslide'], defaults to both
+        force_refresh: If true, bypass cache and fetch fresh data
+    """
+    from .tools.fetch_hazard_risks import (
+        FetchHazardRisksInput,
+        FetchHazardRisksTool,
+        HazardType,
+    )
+
+    # Convert string risk types to Enum if provided
+    enum_risks = []
+    if risk_types:
+        for r in risk_types:
+            try:
+                enum_risks.append(HazardType(r.lower()))
+            except ValueError:
+                pass  # Ignore invalid types
+    else:
+        # Default to all available
+        enum_risks = [HazardType.FLOOD, HazardType.LANDSLIDE]
+
+    tool = FetchHazardRisksTool(http_client=_get_http_client())
+    input_data = FetchHazardRisksInput(
+        latitude=latitude,
+        longitude=longitude,
+        riskTypes=enum_risks,
+        forceRefresh=force_refresh,
+    )
+    result = await tool.run(input_data)
+    return result.model_dump(by_alias=True, exclude_none=True)
+
+
 def main():
     """Run the MCP server."""
     mcp.run()
