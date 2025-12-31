@@ -135,7 +135,7 @@ class FetchTransactionsTool:
 
         for year in range(payload.from_year, payload.to_year + 1):
             params = params_base.copy()
-            params["year"] = year
+            params["year"] = str(year)
 
             fetch_result = await self._http_client.fetch(
                 "XIT001",
@@ -169,7 +169,7 @@ class FetchTransactionsTool:
         is_large = size_bytes > RESOURCE_THRESHOLD_BYTES
 
         resource_uri = None
-        data_to_return = all_data
+        data_to_return: list[dict[str, Any]] | None = all_data
 
         if is_large:
             # Save to cache and return resource URI
@@ -198,12 +198,12 @@ class FetchTransactionsTool:
         )
 
         meta = ResponseMeta(
-            cache_hit=False,
+            cacheHit=False,
             format=payload.format,
         )
         return FetchTransactionsResponse(
             data=data_to_return,
-            resource_uri=resource_uri,
+            resourceUri=resource_uri,
             meta=meta,
         )
 

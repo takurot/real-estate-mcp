@@ -156,7 +156,6 @@ class FetchUrbanPlanningZonesTool:
                 logger.error(f"Failed to read/parse file {fetch_result.file_path}: {e}")
                 # Fallback to None or raise? None is safer here.
 
-
         if payload.response_format == "pbf":
             # Read PBF file and encode to base64
             if fetch_result.file_path:

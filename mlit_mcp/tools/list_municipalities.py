@@ -54,7 +54,9 @@ class ListMunicipalitiesInput(BaseModel):
     )
     lang: str = Field(default="ja", description="Language for the response (ja/en)")
     force_refresh: bool = Field(
-        default=False, description="If true, bypass cache and fetch fresh data"
+        default=False,
+        alias="forceRefresh",
+        description="If true, bypass cache and fetch fresh data",
     )
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
@@ -124,9 +126,9 @@ class ListMunicipalitiesTool:
             },
         )
 
-        meta = ResponseMeta(cache_hit=fetch_result.from_cache)
+        meta = ResponseMeta(cacheHit=fetch_result.from_cache)
         return ListMunicipalitiesResponse(
-            prefecture_code=payload.prefecture_code,
+            prefectureCode=payload.prefecture_code,
             municipalities=municipalities,
             meta=meta,
         )
