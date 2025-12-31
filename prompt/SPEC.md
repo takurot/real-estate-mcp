@@ -21,6 +21,7 @@
 | --- | --- | --- | --- |
 | `mlit.list_municipalities` | 都道府県内の市区町村一覧を取得する (XIT002) | `prefectureCode` | `lang`, `forceRefresh` |
 | `mlit.fetch_transactions` | 不動産取引価格データを取得する (XIT001) | `yearFrom`, `yearTo`, `area` | `classification`, `format`, `forceRefresh` |
+| `mlit.summarize_transactions` | 取引データの集計統計を取得 (XIT001) | `yearFrom`, `yearTo`, `area` | `classification`, `forceRefresh` |
 | `mlit.fetch_transaction_points` | 取引データ (ポイント) を GeoJSON で取得 (XIT003) | `area`, `yearFrom`, `yearTo` | `bbox`, `forceRefresh` |
 | `mlit.fetch_land_price_points` | 地価公示・都道府県地価調査を取得 (XKT001) | `area`, `year` | `responseFormat`, `forceRefresh` |
 | `mlit.fetch_urban_planning_zones` | 都市計画区域などを取得 (XKT011想定) | `area` | `bbox`, `responseFormat`, `forceRefresh` |
