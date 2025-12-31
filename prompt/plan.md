@@ -33,6 +33,7 @@
 | **PR7** | `fetch_school_districts` & MVT               | 学区 (XKT004) + MVT base64 (完了)            | PR5   |
 | **PR8** | ロギング・監視・キャッシュ運用               | 構造化ログ、Stats、Force Refresh (完了)      | PR2   |
 | **PR9** | 統合テストとドキュメント                     | E2E テスト, 負荷テスト, README 完成 (完了)   | PR3-8 |
+| **PR10** | `summarize_transactions` ツール             | 大規模データ向け集計統計ツール (実装中)     | PR4   |
 
 ### 詳細仕様
 

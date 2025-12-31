@@ -279,6 +279,43 @@ async def fetch_school_districts(
 
 
 @mcp.tool()
+async def summarize_transactions(
+    from_year: int,
+    to_year: int,
+    area: str,
+    classification: str | None = None,
+    force_refresh: bool = False,
+) -> dict:
+    """
+    Summarize real estate transaction data from MLIT dataset XIT001.
+    Returns aggregated statistics (count, average, median, distribution)
+    instead of raw data. Useful for large datasets.
+
+    Args:
+        from_year: Starting year (2005-2030)
+        to_year: Ending year (2005-2030)
+        area: Area code (prefecture or city code)
+        classification: Optional transaction classification code
+        force_refresh: If true, bypass cache and fetch fresh data
+    """
+    from .tools.summarize_transactions import (
+        SummarizeTransactionsInput,
+        SummarizeTransactionsTool,
+    )
+
+    tool = SummarizeTransactionsTool(http_client=_get_http_client())
+    input_data = SummarizeTransactionsInput(
+        from_year=from_year,
+        to_year=to_year,
+        area=area,
+        classification=classification,
+        force_refresh=force_refresh,
+    )
+    result = await tool.run(input_data)
+    return result.model_dump(by_alias=True, exclude_none=True)
+
+
+@mcp.tool()
 async def get_server_stats() -> dict:
     """
     Get internal server statistics including cache hits, misses, and request counts.
