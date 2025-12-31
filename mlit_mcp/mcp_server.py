@@ -334,7 +334,7 @@ async def fetch_hazard_risks(
     """
     Fetch hazard risk information (Flood, Landslide) for a specific latitude/longitude.
     Uses MLIT Real Estate Information Library APIs.
-    
+
     Args:
         latitude: Latitude of the location (e.g. 35.6812)
         longitude: Longitude of the location (e.g. 139.7671)
@@ -354,7 +354,7 @@ async def fetch_hazard_risks(
             try:
                 enum_risks.append(HazardType(r.lower()))
             except ValueError:
-                pass # Ignore invalid types
+                pass  # Ignore invalid types
     else:
         # Default to all available
         enum_risks = [HazardType.FLOOD, HazardType.LANDSLIDE]
