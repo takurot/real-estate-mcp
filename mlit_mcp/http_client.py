@@ -171,3 +171,10 @@ class MLITHttpClient:
                 return ".pbf"
             case _:
                 return ".bin"
+
+    def clear_cache(self) -> None:
+        """Clear all in-memory and file caches and reset stats."""
+        self._json_cache.clear()
+        self._file_cache.clear()
+        self._stats = Counter()
+        logger.info("Cleared all caches and reset statistics")

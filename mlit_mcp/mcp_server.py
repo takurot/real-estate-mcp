@@ -325,6 +325,20 @@ async def get_server_stats() -> dict:
 
 
 @mcp.tool()
+async def clear_cache() -> dict:
+    """
+    Clear all internal API caches (in-memory and file-based) and reset statistics.
+    Useful for debugging or freeing up disk space.
+    """
+    from .tools.clear_cache import ClearCacheInput, ClearCacheTool
+
+    tool = ClearCacheTool(http_client=_get_http_client())
+    input_data = ClearCacheInput()
+    result = await tool.run(input_data)
+    return result.model_dump(by_alias=True, exclude_none=True)
+
+
+@mcp.tool()
 async def fetch_hazard_risks(
     latitude: float,
     longitude: float,
