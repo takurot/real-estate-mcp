@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import logging
+from statistics import quantiles, median
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from mlit_mcp.http_client import MLITHttpClient
-from mlit_mcp.tools.summarize_transactions import (
-    SummarizeTransactionsInput,
-    SummarizeTransactionsTool,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +76,7 @@ class PriceBin(BaseModel):
     min_value: int = Field(alias="minValue")
     max_value: int = Field(alias="maxValue")
     label: str = Field(description="Human-readable label for the bin")
-    estimated_count: int = Field(
-        alias="estimatedCount",
-        description="Estimated count based on uniform distribution",
-    )
+    count: int = Field(description="Actual count of transactions in this bin")
     cumulative_percent: float = Field(alias="cumulativePercent")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -118,7 +112,6 @@ class GetPriceDistributionTool:
 
     def __init__(self, http_client: MLITHttpClient) -> None:
         self._http_client = http_client
-        self._summarize_tool = SummarizeTransactionsTool(http_client)
 
     def descriptor(self) -> dict[str, Any]:
         return {
@@ -136,48 +129,116 @@ class GetPriceDistributionTool:
     async def run(
         self, payload: GetPriceDistributionInput
     ) -> GetPriceDistributionResponse:
-        # Get summary data
-        summary_input = SummarizeTransactionsInput(
-            fromYear=payload.from_year,
-            toYear=payload.to_year,
-            area=payload.area,
-            classification=payload.classification,
-            forceRefresh=payload.force_refresh,
-        )
-        summary = await self._summarize_tool.run(summary_input)
+        all_data = []
 
-        if summary.record_count == 0 or summary.min_price is None:
+        # Determine if area is prefecture or city
+        params_base = {}
+        if len(payload.area) == 2:
+            params_base["area"] = payload.area
+        else:
+            params_base["city"] = payload.area
+
+        if payload.classification:
+            params_base["priceClassification"] = payload.classification
+
+        for year in range(payload.from_year, payload.to_year + 1):
+            params = params_base.copy()
+            params["year"] = str(year)
+
+            fetch_result = await self._http_client.fetch(
+                "XIT001",
+                params=params,
+                response_format="json",
+                force_refresh=payload.force_refresh,
+            )
+
+            year_data = fetch_result.data
+            if isinstance(year_data, dict):
+                if "data" in year_data and isinstance(year_data["data"], list):
+                    all_data.extend(year_data["data"])
+            elif isinstance(year_data, list):
+                all_data.extend(year_data)
+
+        # Extract prices
+        prices: list[int] = []
+        for record in all_data:
+            price_str = record.get("TradePrice")
+            if price_str:
+                try:
+                    prices.append(int(price_str))
+                except (ValueError, TypeError):
+                    pass
+
+        record_count = len(prices)
+        if record_count == 0:
             return GetPriceDistributionResponse(
                 totalCount=0,
                 bins=[],
             )
 
+        prices.sort()
+        min_price = prices[0]
+        max_price = prices[-1]
+        
+        # Calculate percentiles
+        percentile_25 = None
+        percentile_75 = None
+        median_price = int(median(prices))
+
+        if record_count >= 4:
+            try:
+                q = quantiles(prices, n=4)
+                percentile_25 = int(q[0])
+                percentile_75 = int(q[2])
+            except Exception:
+                pass # Fallback if quantiles fails
+
         # Generate bins
-        min_price = summary.min_price
-        max_price = summary.max_price or min_price
         price_range = max_price - min_price
-        bin_size = price_range / payload.num_bins if price_range > 0 else 1
+        # Avoid division by zero
+        num_bins = payload.num_bins
+        if price_range == 0:
+            # All prices equal
+            bin_size = 1
+            num_bins = 1
+        else:
+            bin_size = price_range / num_bins
+        
+        bin_counts = [0] * num_bins
+        
+        for price in prices:
+            if price_range == 0:
+                bin_counts[0] += 1
+                continue
+                
+            idx = int((price - min_price) / bin_size)
+            if idx >= num_bins:
+                idx = num_bins - 1
+            bin_counts[idx] += 1
 
         bins: list[PriceBin] = []
-        estimated_per_bin = summary.record_count / payload.num_bins
-
-        for i in range(payload.num_bins):
+        cumulative_count = 0
+        
+        for i in range(num_bins):
             bin_min = int(min_price + i * bin_size)
             bin_max = int(min_price + (i + 1) * bin_size)
-            if i == payload.num_bins - 1:
-                bin_max = max_price  # Ensure last bin includes max
+            # Ensure last bin max matches max_price exactly for display
+            if i == num_bins - 1:
+                bin_max = max_price
 
+            count = bin_counts[i]
+            cumulative_count += count
+            cumulative_percent = round((cumulative_count / record_count) * 100, 1)
+            
             # Format label (in 万円)
             label = f"{bin_min // 10000}万〜{bin_max // 10000}万"
-
-            cumulative_percent = round((i + 1) / payload.num_bins * 100, 1)
 
             bins.append(
                 PriceBin(
                     minValue=bin_min,
                     maxValue=bin_max,
                     label=label,
-                    estimatedCount=int(estimated_per_bin),
+                    count=count,
                     cumulativePercent=cumulative_percent,
                 )
             )
@@ -189,17 +250,17 @@ class GetPriceDistributionTool:
                 "to_year": payload.to_year,
                 "area": payload.area,
                 "num_bins": payload.num_bins,
-                "total_count": summary.record_count,
+                "total_count": record_count,
             },
         )
 
         return GetPriceDistributionResponse(
-            totalCount=summary.record_count,
+            totalCount=record_count,
             minPrice=min_price,
             maxPrice=max_price,
-            percentile25=summary.percentile_25,
-            percentile50=summary.median_price,
-            percentile75=summary.percentile_75,
+            percentile25=percentile_25,
+            percentile50=median_price,
+            percentile75=percentile_75,
             bins=bins,
         )
 
