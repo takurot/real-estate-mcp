@@ -139,6 +139,7 @@ class SummarizeTransactionsTool:
         self, payload: SummarizeTransactionsInput
     ) -> SummarizeTransactionsResponse:
         all_data = []
+        fetch_results = []
 
         # Determine if area is prefecture or city
         params_base = {}
@@ -160,6 +161,7 @@ class SummarizeTransactionsTool:
                 response_format="json",
                 force_refresh=payload.force_refresh,
             )
+            fetch_results.append(fetch_result)
 
             year_data = fetch_result.data
             if isinstance(year_data, dict):
@@ -260,7 +262,10 @@ class SummarizeTransactionsTool:
             },
         )
 
-        meta = ResponseMeta(cacheHit=False)
+        cache_hit_all = (
+            all(res.from_cache for res in fetch_results) if fetch_results else False
+        )
+        meta = ResponseMeta(cacheHit=cache_hit_all)
         return SummarizeTransactionsResponse(
             recordCount=record_count,
             averagePrice=average_price,
