@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -134,9 +135,7 @@ class CompareAreasTool:
         return result.model_dump(by_alias=True, exclude_none=True)
 
     async def run(self, payload: CompareAreasInput) -> CompareAreasResponse:
-        area_stats_list: list[AreaStats] = []
-
-        for area in payload.areas:
+        async def process_area(area: str) -> AreaStats:
             summary_input = SummarizeTransactionsInput(
                 fromYear=payload.from_year,
                 toYear=payload.to_year,
@@ -158,7 +157,7 @@ class CompareAreasTool:
                             (last_price - first_price) / first_price, 4
                         )
 
-            area_stats = AreaStats(
+            return AreaStats(
                 area=area,
                 recordCount=summary.record_count,
                 averagePrice=summary.average_price,
@@ -167,7 +166,11 @@ class CompareAreasTool:
                 maxPrice=summary.max_price,
                 priceChange=price_change,
             )
-            area_stats_list.append(area_stats)
+
+        # Run summaries in parallel
+        area_stats_list = await asyncio.gather(
+            *(process_area(area) for area in payload.areas)
+        )
 
         # Create rankings
         # Ranking by price (descending, None values at the end)
@@ -201,7 +204,7 @@ class CompareAreasTool:
         )
 
         return CompareAreasResponse(
-            areaStats=area_stats_list,
+            areaStats=list(area_stats_list),
             rankingByPrice=ranking_by_price,
             rankingByCount=ranking_by_count,
         )
