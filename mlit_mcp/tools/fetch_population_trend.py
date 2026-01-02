@@ -151,19 +151,21 @@ class FetchPopulationTrendTool:
             if mesh_data:
                 summary.append(f"Found population data for {len(mesh_data)} meshes.")
 
-                # Calculate trend if data is available
-                first_mesh = mesh_data[0]
-                pop_years = first_mesh.get("population_by_year", {})
-                if "2020" in pop_years and "2050" in pop_years:
-                    change_pct = (
-                        (pop_years["2050"] - pop_years["2020"])
-                        / pop_years["2020"]
-                        * 100
-                    )
+                # Calculate aggregated trend across all meshes when possible
+                total_2020 = 0
+                total_2050 = 0
+                for m in mesh_data:
+                    py = m.get("population_by_year", {})
+                    if "2020" in py and "2050" in py:
+                        total_2020 += int(py["2020"])
+                        total_2050 += int(py["2050"])
+
+                if total_2020 > 0:
+                    change_pct = (total_2050 - total_2020) / total_2020 * 100
                     trend = "decrease" if change_pct < 0 else "increase"
                     summary.append(
                         f"Population {trend} of {abs(change_pct):.1f}% "
-                        f"projected from 2020 to 2050."
+                        f"projected from 2020 to 2050 (aggregated)."
                     )
             else:
                 summary.append("No population mesh data available for this area.")
