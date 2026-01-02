@@ -27,6 +27,12 @@
 | `mlit.fetch_urban_planning_zones` | 都市計画区域などを取得 (XKT011想定) | `area` | `bbox`, `responseFormat`, `forceRefresh` |
 | `mlit.fetch_school_districts` | 小学校区などのタイルデータを取得 (XKT021想定) | `area`, `z`, `x`, `y` | `crs`, `forceRefresh` |
 | `mlit.fetch_hazard_risks` | 洪水・土砂災害リスク情報を取得 | `latitude`, `longitude` | `riskTypes`, `forceRefresh` |
+| `mlit.fetch_safety_info` | 津波・高潮・避難施設等を含む総合防災情報を取得 | `latitude`, `longitude` | `riskTypes`, `forceRefresh` |
+| `mlit.fetch_nearby_amenities` | 医療・教育・公共施設などの周辺施設を取得 | `latitude`, `longitude` | `amenityTypes`, `radius` |
+| `mlit.fetch_station_stats` | 駅別の乗降客数データを取得 | `stationName` または `area` | `year`, `forceRefresh` |
+| `mlit.fetch_population_trend` | 将来推計人口（500mメッシュ）を取得 | `area` | `targetYear`, `forceRefresh` |
+| `mlit.search_by_station` | 駅名から周辺の取引データを検索 | `stationName` | `radius`, `yearFrom`, `yearTo` |
+| `mlit.generate_area_report` | 特定エリアの総合サマリーレポートを生成 | `area` または `stationName` | `sections` (array) |
 | `mlit.get_server_stats` | サーバーの内部統計（キャッシュヒット率など）を取得 | - | - |
 
 #### 共通仕様
@@ -72,6 +78,7 @@
 | `mlit.get_market_trends` | 価格推移・成長率 (CAGR, YoY) を計算 | `area`, `yearFrom`, `yearTo` | `trendType`, `classification` |
 | `mlit.get_price_distribution` | 価格帯別の分布統計を取得 | `area`, `yearFrom`, `yearTo` | `binSize`, `classification` |
 | `mlit.detect_outliers` | 異常値・特異取引を検出 | `area`, `yearFrom`, `yearTo` | `method` (iqr/zscore), `threshold` |
+| `mlit.compare_market_to_land_price` | 実勢価格と公示地価の乖離分析 | `area`, `year` | `classification` |
 
 #### 運用系ツール
 - **`mlit.clear_cache`**: キャッシュを手動でクリアする管理用ツール。

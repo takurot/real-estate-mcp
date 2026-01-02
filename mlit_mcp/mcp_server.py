@@ -385,6 +385,58 @@ async def fetch_hazard_risks(
 
 
 @mcp.tool()
+async def fetch_safety_info(
+    latitude: float,
+    longitude: float,
+    info_types: list[str] | None = None,
+    force_refresh: bool = False,
+) -> dict:
+    """
+    Fetch comprehensive safety information (tsunami inundation, storm surge,
+    evacuation shelters) for a specific latitude/longitude.
+    Uses MLIT Real Estate Information Library APIs.
+
+    Args:
+        latitude: Latitude of the location (e.g. 35.6812)
+        longitude: Longitude of the location (e.g. 139.7671)
+        info_types: List of info types ['tsunami', 'storm_surge', 'shelter'],
+                    defaults to all
+        force_refresh: If true, bypass cache and fetch fresh data
+    """
+    from .tools.fetch_safety_info import (
+        FetchSafetyInfoInput,
+        FetchSafetyInfoTool,
+        SafetyInfoType,
+    )
+
+    # Convert string info types to Enum if provided
+    enum_types = []
+    if info_types:
+        for t in info_types:
+            try:
+                enum_types.append(SafetyInfoType(t.lower()))
+            except ValueError:
+                pass  # Ignore invalid types
+    else:
+        # Default to all available
+        enum_types = [
+            SafetyInfoType.TSUNAMI,
+            SafetyInfoType.STORM_SURGE,
+            SafetyInfoType.SHELTER,
+        ]
+
+    tool = FetchSafetyInfoTool(http_client=_get_http_client())
+    input_data = FetchSafetyInfoInput(
+        latitude=latitude,
+        longitude=longitude,
+        infoTypes=enum_types,
+        forceRefresh=force_refresh,
+    )
+    result = await tool.run(input_data)
+    return result.model_dump(by_alias=True, exclude_none=True)
+
+
+@mcp.tool()
 async def get_market_trends(
     from_year: int,
     to_year: int,
