@@ -14,6 +14,9 @@ from .fetch_safety_info import FetchSafetyInfoTool
 from .fetch_nearby_amenities import FetchNearbyAmenitiesTool
 from .fetch_station_stats import FetchStationStatsTool
 from .fetch_population_trend import FetchPopulationTrendTool
+from .search_by_station import SearchByStationTool
+from .compare_market_to_land_price import CompareMarketToLandPriceTool
+from .generate_area_report import GenerateAreaReportTool
 
 
 def build_tools(http_client: MLITHttpClient) -> Dict[str, Any]:
@@ -30,6 +33,9 @@ def build_tools(http_client: MLITHttpClient) -> Dict[str, Any]:
         FetchNearbyAmenitiesTool(http_client=http_client),
         FetchStationStatsTool(http_client=http_client),
         FetchPopulationTrendTool(http_client=http_client),
+        SearchByStationTool(http_client=http_client),
+        CompareMarketToLandPriceTool(http_client=http_client),
+        GenerateAreaReportTool(http_client=http_client),
     ]
     return {tool.name: tool for tool in tools}
 
@@ -46,4 +52,7 @@ __all__ = [
     "FetchNearbyAmenitiesTool",
     "FetchStationStatsTool",
     "FetchPopulationTrendTool",
+    "SearchByStationTool",
+    "CompareMarketToLandPriceTool",
+    "GenerateAreaReportTool",
 ]
