@@ -35,6 +35,13 @@ class SearchByStationInput(BaseModel):
         ge=2005,
         le=2030,
     )
+    max_results: int = Field(
+        default=20,
+        alias="maxResults",
+        description="Max transactions to return",
+        ge=1,
+        le=200,
+    )
     force_refresh: bool = Field(
         default=False,
         alias="forceRefresh",
@@ -134,13 +141,13 @@ class SearchByStationTool:
             data = data or {}
             features = data.get("features", [])
 
-            # Find matching station
+            # Find matching station (case-insensitive)
             for f in features:
                 props = f.get("properties", {})
                 geom = f.get("geometry", {})
                 name = props.get("S12_001_ja", "")
 
-                if payload.station_name in name:
+                if payload.station_name.lower() in name.lower():
                     coords = geom.get("coordinates", [])
                     if coords:
                         station_coords = coords
@@ -148,13 +155,56 @@ class SearchByStationTool:
                         break
 
             if not station_coords:
-                summary.append(f"Station '{payload.station_name}' not found.")
-                return SearchByStationResponse(
-                    stationName=payload.station_name,
-                    stationCoords=None,
-                    transactions=[],
-                    summary=summary,
-                )
+                # Retry on neighboring tiles (3x3) around default tile
+                found = False
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        if dx == 0 and dy == 0:
+                            continue
+                        params = {
+                            "response_format": "geojson",
+                            "z": Z,
+                            "x": x + dx,
+                            "y": y + dy,
+                        }
+                        neighbor_result = await self._http_client.fetch(
+                            "XKT015",
+                            params=params,
+                            response_format="geojson",
+                            force_refresh=payload.force_refresh,
+                        )
+                        ndata = neighbor_result.data
+                        if ndata is None and neighbor_result.file_path:
+                            try:
+                                content = neighbor_result.file_path.read_bytes()
+                                ndata = json.loads(content)
+                            except Exception:
+                                ndata = {}
+                        ndata = ndata or {}
+                        for f in ndata.get("features", []):
+                            props = f.get("properties", {})
+                            geom = f.get("geometry", {})
+                            name = props.get("S12_001_ja", "")
+                            if payload.station_name.lower() in name.lower():
+                                coords = geom.get("coordinates", [])
+                                if coords:
+                                    station_coords = coords
+                                    summary.append(f"Found station: {name}")
+                                    found = True
+                                    break
+                        if found:
+                            break
+                    if found:
+                        break
+
+                if not station_coords:
+                    summary.append(f"Station '{payload.station_name}' not found.")
+                    return SearchByStationResponse(
+                        stationName=payload.station_name,
+                        stationCoords=None,
+                        transactions=[],
+                        summary=summary,
+                    )
 
             # Step 2: Fetch transactions for the area
             # Get prefecture code - simplified for demo
@@ -177,8 +227,8 @@ class SearchByStationTool:
             trans_data = trans_result.data or {}
             if trans_data.get("status") == "OK":
                 raw_transactions = trans_data.get("data", [])
-                # Take first 20 for summary
-                transactions = raw_transactions[:20]
+                # Take first N for summary
+                transactions = raw_transactions[: payload.max_results]
                 summary.append(f"Found {len(raw_transactions)} transactions.")
             else:
                 summary.append("No transactions found in the area.")
