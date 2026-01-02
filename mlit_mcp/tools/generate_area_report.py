@@ -91,7 +91,7 @@ class GenerateAreaReportTool:
         Z = 14
         x, y = lat_lon_to_tile(lat, lon, Z)
 
-        report_parts.append(f"# Area Analysis Report")
+        report_parts.append("# Area Analysis Report")
         report_parts.append(f"**Location**: {lat:.4f}, {lon:.4f}")
         report_parts.append(f"**Tile**: z={Z}, x={x}, y={y}")
         report_parts.append("")
