@@ -169,7 +169,7 @@ class FetchStationStatsTool:
 
                     # Filter by station name if provided
                     if payload.station_name:
-                        if payload.station_name not in station_name:
+                        if payload.station_name.lower() not in station_name.lower():
                             continue
 
                     # Extract passenger count (latest available year)
@@ -196,6 +196,80 @@ class FetchStationStatsTool:
                     summary.append(f"Found {len(stations)} stations in the area.")
                 else:
                     summary.append("No stations found in this area.")
+
+            # Search by station name only (no coordinates provided)
+            elif payload.station_name:
+                # Use a broader tile around central Tokyo as a reasonable default
+                Z = 12
+                default_lat, default_lon = 35.6812, 139.7671
+                x, y = lat_lon_to_tile(default_lat, default_lon, Z)
+                tile_coords = {"z": Z, "x": x, "y": y}
+
+                params = {
+                    "response_format": "geojson",
+                    "z": Z,
+                    "x": x,
+                    "y": y,
+                }
+
+                fetch_result = await self._http_client.fetch(
+                    "XKT015",
+                    params=params,
+                    response_format="geojson",
+                    force_refresh=payload.force_refresh,
+                )
+
+                data = fetch_result.data
+                if data is None and fetch_result.file_path:
+                    try:
+                        content = fetch_result.file_path.read_bytes()
+                        data = json.loads(content)
+                    except Exception as ex:
+                        logger.error(
+                            f"Failed to read/parse file {fetch_result.file_path}: {ex}"
+                        )
+                        data = {}
+
+                data = data or {}
+                features = data.get("features", [])
+
+                for f in features:
+                    props = f.get("properties", {})
+                    geom = f.get("geometry", {})
+                    coords = geom.get("coordinates", [0, 0])
+
+                    station_name = props.get("S12_001_ja", "Unknown")
+                    if payload.station_name.lower() not in station_name.lower():
+                        continue
+
+                    # Extract passenger count (latest available year)
+                    passenger_count = None
+                    for key in ["S12_057", "S12_053", "S12_049", "S12_009"]:
+                        if key in props and props[key]:
+                            try:
+                                passenger_count = int(props[key])
+                                break
+                            except (ValueError, TypeError):
+                                pass
+
+                    stations.append(
+                        {
+                            "station_name": station_name,
+                            "operator": props.get("S12_002_ja", "Unknown"),
+                            "line_name": props.get("S12_003_ja", "Unknown"),
+                            "passenger_count": passenger_count,
+                            "coordinates": coords,
+                        }
+                    )
+
+                if stations:
+                    summary.append(
+                        f"Found {len(stations)} stations matching '{payload.station_name}'."
+                    )
+                else:
+                    summary.append(
+                        f"No stations found matching '{payload.station_name}'."
+                    )
 
         except Exception as e:
             logger.error(f"Failed to fetch station stats: {e}")
