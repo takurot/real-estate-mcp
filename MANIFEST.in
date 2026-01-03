@@ -1,0 +1,4 @@
+include README.md
+include AGENTS.md
+include requirements.txt
+recursive-include mlit_mcp *.py

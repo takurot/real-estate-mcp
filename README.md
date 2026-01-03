@@ -24,6 +24,15 @@
    cd real-estate-mcp
    ```
 
+### PyPI からインストールする場合 (推奨)
+
+```bash
+pip install mlit-mcp
+```
+
+### ソースコードからインストールする場合
+
+
 2. 依存パッケージのインストール:
    ```bash
    python -m venv .venv
